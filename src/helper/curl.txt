@@ -1,0 +1,61 @@
+curl -X POST http://localhost:5000/articles \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Harga termurah bulan Januari 2025",
+    "content": "Harga termurah Bulan Juni 2025 adalah 200 dengan kecepatan internet 20mbps, silahkan hubungi nusa.net.id",
+    "author": "Nusanet",
+    "organization_id": 3,
+    "status": "draft",
+    "created_by": "admin",
+    "updated_by": "admin"
+  }'
+
+  curl -X POST http://localhost:5000/questions \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "question": "Harga termurah bulan atau hari ini",
+  "article_ids": [4,5,6,7,8],
+  "organization_id": 2,
+  "created_by": "admin",
+  "updated_by": "admin",
+  "status": "active"
+}'
+
+curl -X POST http://localhost:5000/organizations \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Sales"
+  }'
+
+curl -X POST http://localhost:5000/ask \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "question": "Berapa harga termurah bulan ini?",
+    "session_id": "1"
+  }'
+
+  f"""Pertanyaan ini tidak dapat dijawab karena tidak ada data artikel yang relevan. Silakan sampaikan ke pelanggan bahwa mereka bisa menghubungi WhatsApp Nusanet di 08222322131321 dan email nusa.net.id.
+    """,
+"""
+            SELECT
+                q.id AS question_id,
+                q.question,
+                (1 - (q.question_vector <=> %s::vector)) AS cosine_similarity,
+                a.id AS article_id,
+                a.title AS article_title,
+                a.content AS article_content,
+                o.id AS organization_id,
+                o.name AS organization_name
+            FROM
+                questions q
+            JOIN
+                question_articles qa ON q.id = qa.question_id
+            JOIN
+                articles a ON qa.article_id = a.id
+            LEFT JOIN
+                organizations o ON q.organization_id = o.id
+            WHERE
+                (1 - (q.question_vector <=> %s::vector)) >= 0.5
+            ORDER BY
+                cosine_similarity DESC;
+        """

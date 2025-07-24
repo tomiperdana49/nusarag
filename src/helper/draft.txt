@@ -1,0 +1,355 @@
+file model.py 
+    
+
+    
+
+# def ask(question: str):
+#     # Inisialisasi LLM
+#     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3)
+#     prompt_template = hub.pull("rlm/rag-prompt")
+
+#     # Ambil data yang mirip
+#     q_data = match_question(question)
+
+#     if not q_data or "articles" not in q_data[0]:
+#         fallback_prompt = prompt_template.invoke({
+#             "context": f"Hubungi 0812626260982 untuk bantuan lebih lanjut. Pertanyaan: {question}",
+#             "question": question
+#         })
+#         response = llm.invoke(fallback_prompt)
+#         return response.content, "tidak ada artikel"
+
+#     # Gabungkan semua artikel
+#     seen_articles = set()
+#     context_parts = []
+
+#     for entry in q_data:
+#         for article in entry["articles"]:
+#             if article["id"] not in seen_articles:
+#                 seen_articles.add(article["id"])
+#                 context_parts.append(f"Judul: {article['title']}\n{article['content']}")
+
+#     context = "\n\n".join(context_parts)
+
+#     # Gunakan prompt template dari LangChain Hub
+#     final_prompt = prompt_template.invoke({
+#         "context": context.strip(),
+#         "question": question.strip()
+#     })
+
+#     # Dapatkan jawaban
+#     response = llm.invoke(final_prompt)
+#     return response.content, q_data[0]["similarity"], context
+
+# def ask(question: str):
+#     llm = init_chat_model("gpt-4o-mini", model_provider="openai")
+#     prompt = hub.pull("rlm/rag-prompt")
+#     q_data = match_question(question)
+#     if not q_data or "articles" not in q_data[0]:
+#         message = prompt.invoke({
+#             "context": f"""Pertanyaan ini tidak dapat dijawab karena tidak ada data artikel yang relevan. Silakan sampaikan ke pelanggan bahwa mereka bisa menghubungi WhatsApp Nusanet di 08222322131321 dan email nusa.net.id.
+#     """,
+#             "question": question
+#         })
+#         response = llm.invoke(message)
+#         return response.content, "tidak ada artikel",  q_data[0]["similarity"]
+
+#     context = "\n\n".join([a["content"] for a in q_data[0]["articles"]])
+    
+#     message = prompt.invoke({
+#         "context": context  + "Tolong selalu tampilkan informasi kontak email maupun whatsapp jika ada.",
+#         "question": q_data[0]["question"]
+#     })
+
+#     response = llm.invoke(message)
+#     if response:
+#         return response.content, q_data[0]["similarity"]
+#     else:
+#         return "Terjadi masalah saat memproses pertanyaan atau koneksi database."
+
+
+
+def ask(question: str, session_id:str):
+    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3)
+    # Cek session
+    history = find_session(session_id)
+
+    if history:
+        prompt_summary = PromptTemplate.from_template("""  
+                                Kamu adalah Naila (Nusa Artificial Intelligance Liaison Assistant. Kamu adalah asisten cerdas yang akan membantu dalam meringkas history pertanyaan customer sebelumnya
+
+                                Aturan kamu sebagai asisten adalah :
+                                1. Gunakan bahasa indonesia yang baik dan benar, serta memiliki nilai profesional.
+                                2. Jika kamu meringkas, caranya adalah list pertanyaan selanjutnya jawabannya.
+                                3. Jawaban harus informatif
+                                4. Setiap ada informasi mengenai kontak, hasrus kamu sertakan.
+                                
+                                Berikut adalah history dari percakapan sebelumnya:
+                                {history}
+                            """)
+        reformat = prompt_summary.format(
+            history = history
+        )
+
+        res = llm.invoke(reformat)
+        vec_sum = convert(question)
+
+        q_data = match_question(vec_sum)
+
+        if not q_data or "articles" not in q_data[0]:
+            prompt_notfound = PromptTemplate.from_template(
+                                """
+                                   Kamu adalah Naila (Nusa Artificial Intelligance Liaison Assistant. Kamu adalah asisten cerdas yang akan membantu dalam meringkas history pertanyaan customer sebelumnya
+
+                                   Saat ini artikel tidak ditemukan. Tugas kamu adalah memberikan informasi bahwa kamu belum bisa menjawab pertanyaan {question} yang diberikan dan arahkan untuk bertanya melalui kontak nusaneet yaitu nusa.net.id.
+                                """
+            )
+       
+            reformat = prompt_notfound.format(
+                question = question
+            )
+            res = llm.invoke(reformat)
+            return res.content, "Not found article : Source ini berasal dari tidak ditemukan artikel part-1"
+        
+        #Gabungkan seluruh artikel
+        join_article = set()
+        part_context = []
+
+        for entry in q_data:
+            for article in entry["articles"]:
+                if article["id"] not in join_article:
+                    join_article.add(article["id"])
+                    part_context.append(f"Judul: {article['title']}\n{article['content']}")
+
+        context = "\n\n".join(part_context)
+
+        prompt_answer = PromptTemplate.from_template(
+            """
+                Kamu adalah Naila (Nusa Artificial Intelligance Liaison Assistant. Kamu adalah asisten cerdas yang akan membantu dalam meringkas history pertanyaan customer sebelumnya
+
+                Aturan kamu sebagai asisten adalah:
+                    1. Gunakan bahasa indonesia yang baik dan benar, serta profesional.
+                    2. Selalu jawab pertanyaan sesuai dengan konteks, jangan menjelaskan apapun yang tidak sesuai
+                    3. Informasi yang kamu berikan harus informatif dan jelas. Setiap ada kontak yang dapat dihubungi harus kamu sertakan.
+                    4. Kamu harus selalu ingat tanggal, bulan, dan tahun saat ini, sehingga jika ada pertanyaan terkait waktu, kamu harus bisa sesuaikan dan saat ini {month} {year}
+                    5. Jika ada informasi terkait di history harus kamu sertakan.
+                                                     
+                Berikut adalah history dari percakapan sebelumnya:
+                {histor}
+                            
+                Berikut adalah pertanyaan user:
+                {question}
+
+                Berikut adalah konteks terkait:
+                {articles}
+            """)
+        
+        reformat = prompt_answer.format(
+            month = current_month,
+            year = current_year,
+            history = history,
+            question = question,
+            article = context
+        )
+
+        res = llm.invoke(reformat)
+
+        data = {
+            "session_id": session_id,
+            "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "question": question,
+            "similarity": q_data[0]["similarity"],
+            "similar_question": q_data[0]["question"],
+            "context": context,
+            "system_instruction": reformat,
+            "response": res.content,
+        }
+        save_log(data)
+
+        return res.content, q_data[0]["similarity"], "Ini berasal dari terdapat history dan question match"
+    else:
+        vec = convert (question)
+        q_data = match_question(vec)
+
+        if not q_data or "articles" not in q_data[0]:
+            prompt_notfound = PromptTemplate.from_template(
+                                """
+                                   Kamu adalah Naila (Nusa Artificial Intelligance Liaison Assistant. Kamu adalah asisten cerdas yang akan membantu dalam meringkas history pertanyaan customer sebelumnya
+
+                                   Saat ini artikel tidak ditemukan. Tugas kamu adalah memberikan informasi bahwa kamu belum bisa menjawab pertanyaan {question} yang diberikan dan arahkan untuk bertanya melalui kontak nusaneet yaitu nusa.net.id.
+                                """
+            )
+       
+            reformat = prompt_notfound.format(
+                question = question
+            )
+            res = llm.invoke(reformat)
+            return res.content, "Not found article : Source ini berasal dari tidak ditemukan artikel part-2"
+        
+        #Gabungkan seluruh artikel
+        join_article = set()
+        part_context = []
+
+        for entry in q_data:
+            for article in entry["articles"]:
+                if article["id"] not in join_article:
+                    join_article.add(article["id"])
+                    part_context.append(f"Judul: {article['title']}\n{article['content']}")
+
+        context = "\n\n".join(part_context)
+
+        prompt_answer = PromptTemplate.from_template(
+            """
+                Kamu adalah Naila (Nusa Artificial Intelligance Liaison Assistant. Kamu adalah asisten cerdas yang akan membantu dalam meringkas history pertanyaan customer sebelumnya
+
+                Aturan kamu sebagai asisten adalah:
+                    1. Gunakan bahasa indonesia yang baik dan benar, serta profesional.
+                    2. Selalu jawab pertanyaan sesuai dengan konteks, jangan menjelaskan apapun yang tidak sesuai
+                    3. Informasi yang kamu berikan harus informatif dan jelas. Setiap ada kontak yang dapat dihubungi harus kamu sertakan.
+                    4. Kamu harus selalu ingat tanggal, bulan, dan tahun saat ini, sehingga jika ada pertanyaan terkait waktu, kamu harus bisa sesuaikan dan saat ini {month} {year}
+                    5. Jika ada informasi terkait di history harus kamu sertakan.
+                                                     
+                Berikut adalah history dari percakapan sebelumnya:
+                {history}
+                            
+                Berikut adalah pertanyaan user:
+                {question}
+
+                Berikut adalah konteks terkait:
+                {articles}
+            """)
+        
+        reformat = prompt_answer.format(
+            month = current_month,
+            year = current_year,
+            history = history,
+            question = question,
+            articles = context
+        )
+
+        res = llm.invoke(reformat)
+
+        data = {
+            "session_id": session_id,
+            "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "question": question,
+            "similarity": q_data[0]["similarity"],
+            "similar_question": q_data[0]["question"],
+            "context": context,
+            "system_instruction": reformat,
+            "response": res.content,
+        }
+        save_log(data)
+
+        return res.content, q_data[0]["similarity"], "Ini berasal dari tidak terdapat history dan question match"
+
+
+@app.route("/test", methods=["GET", "POST"])
+def coba():
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT name FROM organizations")
+    organization = [row[0] for row in cur.fetchall()]
+
+    if request.method == "POST":
+        name = request.form.get("organization")  # <- ganti get_json jadi form
+        check = "SELECT name FROM organizations WHERE name ILIKE %s"
+        cur.execute(check, (name,))
+        see = cur.fetchall()
+
+        if see:
+            cur.close()
+            conn.close()
+            # Kirim error ke template
+            return render_template('form_organization.html', organization=organization, error="Organisasi sudah terdaftar!")
+        else:
+            query = """
+                INSERT INTO organizations (name, created_at, updated_at)
+                VALUES (%s, NOW(), NOW())
+                RETURNING *
+            """
+            cur.execute(query, (name,))
+            conn.commit()
+            cur.close()
+            conn.close()
+            return redirect(url_for('coba'))  # redirect setelah submit
+
+    return render_template('form_organization.html', organization=organization)
+
+@app.route("/form", methods=["GET", "POST"])
+def form():
+    conn = get_connection()
+    cur = conn.cursor()
+    query = "SELECT id, name FROM organizations"
+    cur.execute(query)
+    organization = cur.fetchall() 
+    query = """
+        SELECT a.id, a.title, a.content, o.name AS organization_name, a.author, a.status, a.updated_at
+        FROM articles a
+        JOIN organizations o ON a.organization_id = o.id
+    """
+    cur.execute(query)
+    articles = cur.fetchall()
+    if request.method == "POST":
+         # Contoh hasil: [(1, 'Billing'), (2, 'Sales')]
+        cur.close()
+        conn.close()
+        return render_template('form_artikel.html', organization = organization, articles = articles)
+    cur.close()
+    conn.close()
+    return render_template('form_artikel.html', organization = organization, articles = articles)
+
+@app.route("/artikel")
+def artikel():
+    conn = get_connection()
+    cur = conn.cursor()
+
+    query = """
+        SELECT a.id, a.title, a.content, o.name AS organization_name, a.author, a.status, a.updated_at
+        FROM articles a
+        JOIN organizations o ON a.organization_id = o.id
+    """
+    cur.execute(query)
+    articles = cur.fetchall()
+    cur.close()
+    conn.close()
+
+    return render_template("view_artikel.html", articles=articles)
+
+@app.route("/subquestion", methods=["GET", "POST"])
+def subquestion():
+    conn = get_connection()
+    cur = conn.cursor()
+
+    # Ambil daftar organisasi untuk dropdown
+    cur.execute("SELECT id, name FROM organizations ORDER BY name")
+    organization = cur.fetchall()
+
+    cur.execute("SELECT id, title FROM articles ORDER BY updated_at DESC")
+    article_choices = cur.fetchall()
+
+    # Ambil hasil join: pertanyaan + artikel + organisasi
+    cur.execute("""
+        SELECT
+            q.id AS question_id,
+            a.content AS question_content,
+            a.id AS article_id,
+            a.title AS article_title,
+            a.content AS article_content,
+            o.name AS organization_name,
+            a.author,
+            a.status,
+            a.updated_at,
+            q.question
+        FROM questions q
+        JOIN question_articles qa ON q.id = qa.question_id
+        JOIN articles a ON qa.article_id = a.id
+        JOIN organizations o ON a.organization_id = o.id
+        ORDER BY q.id, a.updated_at DESC
+    """)
+    articles = cur.fetchall()
+
+    cur.close()
+    conn.close()
+
+    return render_template("form_question.html", organization=organization, articles=articles,  article_choices=article_choices,)

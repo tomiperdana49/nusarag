@@ -1,0 +1,90 @@
+CREATE EXTENSION IF NOT EXISTS vector;
+
+CREATE TABLE organizations (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE articles (
+    id SERIAL PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    content TEXT NOT NULL,
+    author VARCHAR(100),
+    organization_id INTEGER,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status VARCHAR(20) DEFAULT 'draft' CHECK (status IN ('draft', 'published', 'archived')),
+    created_by VARCHAR(100),
+    updated_by VARCHAR(100),
+
+    CONSTRAINT fk_articles_organization 
+        FOREIGN KEY (organization_id) 
+        REFERENCES organizations(id) 
+        ON DELETE SET NULL 
+        ON UPDATE CASCADE
+);
+
+CREATE TABLE questions (
+    id SERIAL PRIMARY KEY,
+    question TEXT NOT NULL,
+    question_vector VECTOR(1536),
+    organization_id INTEGER,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(100),
+    updated_by VARCHAR(100),
+    status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'archived')),
+
+    CONSTRAINT fk_questions_organization 
+        FOREIGN KEY (organization_id) 
+        REFERENCES organizations(id) 
+        ON DELETE SET NULL 
+        ON UPDATE CASCADE
+);
+
+CREATE TABLE question_articles (
+    question_id INTEGER NOT NULL,
+    article_id INTEGER NOT NULL,
+    PRIMARY KEY (question_id, article_id),
+
+    CONSTRAINT fk_question_articles_question
+        FOREIGN KEY (question_id) REFERENCES questions(id)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+
+    CONSTRAINT fk_question_articles_article
+        FOREIGN KEY (article_id) REFERENCES articles(id)
+        ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE INDEX idx_articles_organization_id ON articles(organization_id);
+CREATE INDEX idx_questions_organization_id ON questions(organization_id);
+CREATE INDEX idx_questions_status ON questions(status);
+CREATE INDEX idx_questions_vector ON questions USING hnsw (question_vector vector_cosine_ops);
+CREATE INDEX idx_question_articles_question_id ON question_articles(question_id);
+CREATE INDEX idx_question_articles_article_id ON question_articles(article_id);
+
+
+CREATE TABLE log (
+    id SERIAL PRIMARY KEY,
+    time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    organization_id INTEGER NOT NULL,
+    question TEXT NOT NULL,
+    similar_question TEXT NOT NULL,
+    similarity FLOAT,
+    context TEXT NOT NULL,
+    system_instruction TEXT NOT NULL,
+    response TEXT NOT NULL,
+    summary TEXT NOT NULL,
+    sum_vector VECTOR(1536) 
+);
+
+CREATE TABLE history(
+    id SERIAL PRIMARY KEY,
+    time
+    session_id VARCHAR(100),
+    organization_id INTEGER,
+    question TEXT NOT NULL,
+    response TEXT NOT NULL,
+)
