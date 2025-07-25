@@ -8,12 +8,13 @@ class ArticleService:
         cur = conn.cursor()
 
         query = """
-                INSERT INTO articles (title, content, author, organization_id, status, created_by, updated_by)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO articles (id, title, content, author, organization_id, status, created_by, updated_by)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING *
         """
 
         values = [
+            article.get("id"),
             article.get("title"),
             article.get("content"),
             article.get("author"),
@@ -83,15 +84,16 @@ class QuestionService:
 
             query = """
                 INSERT INTO questions (
-                    question, question_vector, organization_id, created_by, updated_by, status
+                    id,question, question_vector, organization_id, created_by, updated_by, status
                 ) 
-                VALUES (%s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
                 RETURNING id;
             """
 
             updated_by = questions.get("updated_by") or questions.get("created_by")
 
             cur.execute(query, (
+                questions.get("id"),
                 questions.get("question"),
                 questions_vector,
                 questions.get("organization_id"),
