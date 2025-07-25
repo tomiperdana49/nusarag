@@ -30,7 +30,7 @@ def validate_article(func):
         conn = get_connection()
         cur = conn.cursor()
         # Perhatikan tuple parameter
-        query = "SELECT id FROM articles WHERE id LIKE %s"
+        query = "SELECT id FROM articles WHERE id == %s"
         cur.execute(query, (data["id"],))
         if cur.fetchone():
             return jsonify({
@@ -75,7 +75,7 @@ def validate_question(func):
         conn = get_connection()
         cur = conn.cursor()
         # Perhatikan tuple parameter
-        query = "SELECT id FROM questions WHERE id LIKE %s"
+        query = "SELECT id FROM questions WHERE id == %s"
         cur.execute(query, (data["id"],))
         if cur.fetchone():
             return jsonify({
