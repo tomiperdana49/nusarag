@@ -75,17 +75,18 @@ class ArticleService:
     
 class QuestionService:
     def create_questions(self, questions):
-        conn = get_connection()
-        cur = conn.cursor()
-        try:
+            conn = get_connection()
+            cur = conn.cursor()
+
             questions_vector = convert(questions.get("question"))
             if questions_vector is None:
-                raise Exception("Gagal dalam mengkonversi vektor.")
+                raise Exception("Gagal dalam mengkonversi vektor....")
 
             query = """
                 INSERT INTO questions (
-                    id, question, question_vector, organization_id, created_by, updated_by, status
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    id,question, question_vector, organization_id, created_by, updated_by, status
+                ) 
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
                 RETURNING id;
             """
 
@@ -100,46 +101,29 @@ class QuestionService:
                 updated_by,
                 questions.get("status"),
             ))
-
             question_id = cur.fetchone()[0]
+            article_ids = questions.get("article_ids", [])
+            if isinstance(article_ids, int):
+                article_ids = [article_ids]
+            elif not isinstance(article_ids, list):
+                raise Exception("Format article_ids harus berupa list atau integer.")
+
+            for article_id in article_ids:
+                cur.execute(
+                    "INSERT INTO question_articles (question_id, article_id) VALUES (%s, %s)",
+                    (question_id, article_id)
+                )
+
             conn.commit()
+            cur.close()
+            conn.close()
 
             return {
                 "id": question_id,
                 "question": questions.get("question"),
-                "organization_id": questions.get("organization_id")
+                "organization_id": questions.get("organization_id"),
+                "article_ids": article_ids
             }
-
-        except Exception as e:
-            conn.rollback()
-            raise e
-
-        finally:
-            cur.close()
-            conn.close()
-
-
-    def attach_article_to_question(self, question_id, article_id):
-        if not isinstance(article_id, int):
-            raise Exception("article_id harus berupa integer.")
-
-        conn = get_connection()
-        cur = conn.cursor()
-        try:
-            cur.execute(
-                "INSERT INTO question_articles (question_id, article_id) VALUES (%s, %s)",
-                (question_id, article_id)
-            )
-            conn.commit()
-
-        except Exception as e:
-            conn.rollback()
-            raise e
-
-        finally:
-            cur.close()
-            conn.close()
-
 
 
     def get_all_question(self):
