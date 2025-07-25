@@ -27,19 +27,6 @@ def validate_article(func):
                 "message": f"Field {', '.join(missing)} wajib diisi"
             }), 400
         
-        conn = get_connection()
-        cur = conn.cursor()
-        # Perhatikan tuple parameter
-        query = "SELECT id FROM articles WHERE id == %s"
-        cur.execute(query, (data["id"],))
-        if cur.fetchone():
-            return jsonify({
-                "success": False,
-                "message": "Id artikel sudah ada."
-            }), 400
-        
-        cur.close()
-        conn.close()
 
         # Simpan ke flask.g agar bisa diakses di fungsi route
         g.article_data = data
@@ -72,19 +59,6 @@ def validate_question(func):
                 "message": f"Field {', '.join(missing)} wajib diisi"
             }), 400
         
-        conn = get_connection()
-        cur = conn.cursor()
-        # Perhatikan tuple parameter
-        query = "SELECT id FROM questions WHERE id == %s"
-        cur.execute(query, (data["id"],))
-        if cur.fetchone():
-            return jsonify({
-                "success": False,
-                "message": "Id artikel sudah ada."
-            }), 400
-        
-        cur.close()
-        conn.close()
 
         # Validasi bahwa article_ids adalah list dan tidak kosong
         if not isinstance(data['article_ids'], list) or len(data['article_ids']) == 0:
