@@ -103,9 +103,8 @@ class QuestionService:
                         organization_id = EXCLUDED.organization_id,
                         created_by = EXCLUDED.created_by,
                         updated_by = EXCLUDED.updated_by,
-                        status = EXCLUDED.status,
-                    RETURNING *
-                RETURNING id;
+                        status = EXCLUDED.status
+                RETURNING *;
             """
 
             updated_by = questions.get("updated_by") or questions.get("created_by")
