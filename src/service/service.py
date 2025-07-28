@@ -148,7 +148,6 @@ class QuestionService:
             cur.execute(
                 "INSERT INTO question_articles (question_id, article_id, created_at) VALUES (%s, %s, NOW())",
                 (question_id, article_id)
-                
 
             )
             conn.commit()
