@@ -74,26 +74,33 @@ def validate_question(func):
 def validate_question_article(func):
     def wrapper(*args, **kwargs):
         data = request.get_json()
-        if not data:
+
+        # Validasi data harus JSON object
+        if not data or not isinstance(data, dict):
             return jsonify({
                 "success": False,
-                "message": "Request body tidak boleh kosong atau harus berupa JSON valid"
+                "message": "Request body tidak boleh kosong dan harus berupa JSON valid"
             }), 400
 
-        required = ["question_id", "article_id"]
-        missing = [field for field in required if field not in data]
+        # Field wajib
+        required_fields = ["question_id", "article_id"]
+        missing = [field for field in required_fields if field not in data or data[field] in [None, ""]]
+
         if missing:
             return jsonify({
                 "success": False,
                 "message": f"Field {', '.join(missing)} wajib diisi"
             }), 400
 
-        if not isinstance(data["question_id"], int) or not isinstance(data["article_id"], int):
-            return jsonify({
-                "success": False,
-                "message": "question_id dan article_id harus berupa integer"
-            }), 400
+        # Validasi tipe data harus int
+        for field in required_fields:
+            if not isinstance(data[field], int):
+                return jsonify({
+                    "success": False,
+                    "message": f"{field} harus berupa integer"
+                }), 400
 
+        # Lolos semua validasi → lanjutkan ke route
         g.question_article_data = data
         return func(*args, **kwargs)
 

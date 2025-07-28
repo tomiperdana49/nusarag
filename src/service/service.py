@@ -8,10 +8,20 @@ class ArticleService:
         cur = conn.cursor()
 
         query = """
-                INSERT INTO articles (id, title, content, author, organization_id, status, created_by, updated_by)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                RETURNING *
-        """
+                    INSERT INTO articles (id, title, content, author, organization_id, status, created_by, updated_by)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (id)
+                    DO UPDATE SET
+                        title = EXCLUDED.title,
+                        content = EXCLUDED.content,
+                        author = EXCLUDED.author,
+                        organization_id = EXCLUDED.organization_id,
+                        status = EXCLUDED.status,
+                        created_by = EXCLUDED.created_by,
+                        updated_by = EXCLUDED.updated_by
+                    RETURNING *
+                """
+
 
         values = [
             article.get("id"),
@@ -86,6 +96,15 @@ class QuestionService:
                 INSERT INTO questions (
                     id, question, question_vector, organization_id, created_by, updated_by, status
                 ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (id)
+                    DO UPDATE SET
+                        question = EXCLUDED.question,
+                        question_vector = EXCLUDED.question_vector,
+                        organization_id = EXCLUDED.organization_id,
+                        created_by = EXCLUDED.created_by,
+                        updated_by = EXCLUDED.updated_by,
+                        status = EXCLUDED.status,
+                    RETURNING *
                 RETURNING id;
             """
 
@@ -127,8 +146,10 @@ class QuestionService:
         cur = conn.cursor()
         try:
             cur.execute(
-                "INSERT INTO question_articles (question_id, article_id) VALUES (%s, %s)",
+                "INSERT INTO question_articles (question_id, article_id, created_at) VALUES (%s, %s, NOW())",
                 (question_id, article_id)
+                
+
             )
             conn.commit()
 

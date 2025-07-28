@@ -68,7 +68,7 @@ def create_questions():
     except Exception as e:
         return jsonify({"success": False, "message": "Gagal menambahkan pertanyaan", "error": str(e)}), 500
     
-@app.route("/question-articles", methods=["POST"], endpoint="create_question_article")
+@app.route("/question-articles", methods=["POST"])
 @validate_question_article
 def create_question_article():
     data = g.question_article_data
@@ -80,6 +80,7 @@ def create_question_article():
         return jsonify({"success": True, "message": "Relasi berhasil dibuat"}), 201
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
+
 
 
 
