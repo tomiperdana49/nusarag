@@ -137,23 +137,31 @@ class QuestionService:
             conn.close()
 
 
-    def attach_article_to_question(self, question_id, article_id):
-        if not isinstance(article_id, int):
-            raise Exception("article_id harus berupa integer.")
-
+    def attach_articles_to_questions_batch(self, pairs: list[dict]):
         conn = get_connection()
         cur = conn.cursor()
+
+        cur.execute("DELETE FROM question_articles;")
+        conn.commit()
         try:
-            cur.execute(
-                """INSERT INTO question_articles (question_id, article_id, created_at) VALUES (%s, %s, NOW())
-                ON CONFLICT (question_id, article_id)
-                DO UPDATE SET
+            for item in pairs:
+                question_id = item["question_id"]
+                article_id = item["article_id"]
+
+                cur.execute(
+                    """
+                    INSERT INTO question_articles (question_id, article_id, created_at)
+                    VALUES (%s, %s, NOW())
+                    ON CONFLICT (question_id, article_id)
+                    DO UPDATE SET
                         question_id = EXCLUDED.question_id,
                         article_id = EXCLUDED.article_id,
-                        created_at= NOW()
-                RETURNING *; """,
-                (question_id, article_id)
-            )
+                        created_at = NOW()
+                    RETURNING *;
+                    """,
+                    (question_id, article_id)
+                )
+
             conn.commit()
 
         except Exception as e:
@@ -163,6 +171,8 @@ class QuestionService:
         finally:
             cur.close()
             conn.close()
+
+    
 
 
 

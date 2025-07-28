@@ -71,40 +71,44 @@ def validate_question(func):
 
     return wrapper
 
-def validate_question_article(func):
+def validate_question_article_batch(func):
     def wrapper(*args, **kwargs):
         data = request.get_json()
 
-        # Validasi data harus JSON object
-        if not data or not isinstance(data, dict):
+        if not isinstance(data, list) or len(data) == 0:
             return jsonify({
                 "success": False,
-                "message": "Request body tidak boleh kosong dan harus berupa JSON valid"
+                "message": "Body harus berupa array JSON yang berisi data"
             }), 400
 
-        # Field wajib
-        required_fields = ["question_id", "article_id"]
-        missing = [field for field in required_fields if field not in data or data[field] in [None, ""]]
-
-        if missing:
-            return jsonify({
-                "success": False,
-                "message": f"Field {', '.join(missing)} wajib diisi"
-            }), 400
-
-        # Validasi tipe data harus int
-        for field in required_fields:
-            if not isinstance(data[field], int):
+        for idx, item in enumerate(data, start=1):
+            if not isinstance(item, dict):
                 return jsonify({
                     "success": False,
-                    "message": f"{field} harus berupa integer"
+                    "message": f"Item ke-{idx} bukan objek JSON valid"
                 }), 400
 
-        # Lolos semua validasi → lanjutkan ke route
-        g.question_article_data = data
+            required_fields = ["question_id", "article_id"]
+            missing = [field for field in required_fields if item.get(field) in [None, ""]]
+
+            if missing:
+                return jsonify({
+                    "success": False,
+                    "message": f"Item ke-{idx}: field {', '.join(missing)} wajib diisi"
+                }), 400
+
+            for field in required_fields:
+                if not isinstance(item.get(field), int):
+                    return jsonify({
+                        "success": False,
+                        "message": f"Item ke-{idx}: {field} harus berupa integer"
+                    }), 400
+
+        g.question_article_batch_data = data
         return func(*args, **kwargs)
 
     return wrapper
+
 
 def validate_organizations(func):
     def wrapper(*args, **kwargs):

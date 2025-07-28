@@ -1,8 +1,7 @@
 from flask import Flask, jsonify, request, g, render_template, redirect, url_for
 from flask_cors import CORS
 from service.service import ArticleService, QuestionService, OrganizationService, AskService
-from connection.connection import get_connection
-from validation.validation import validate_article, validate_question, validate_organizations, validate_question_article
+from validation.validation import validate_article, validate_question, validate_organizations, validate_question_article_batch
 
 app = Flask(__name__)
 CORS(app)
@@ -69,15 +68,12 @@ def create_questions():
         return jsonify({"success": False, "message": "Gagal menambahkan pertanyaan", "error": str(e)}), 500
     
 @app.route("/question-articles", methods=["POST"])
-@validate_question_article
-def create_question_article():
-    data = g.question_article_data
+@validate_question_article_batch
+def create_question_articles_batch():
+    data = g.question_article_batch_data
     try:
-        q_service.attach_article_to_question(
-            question_id=data["question_id"],
-            article_id=data["article_id"]
-        )
-        return jsonify({"success": True, "message": "Relasi berhasil dibuat"}), 201
+        q_service.attach_articles_to_questions_batch(data)
+        return jsonify({"success": True, "message": f"{len(data)} relasi berhasil dibuat"}), 201
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
 
