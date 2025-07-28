@@ -146,10 +146,14 @@ class QuestionService:
         cur = conn.cursor()
         try:
             cur.execute(
-                "INSERT INTO question_articles (question_id, article_id, created_at) VALUES (%s, %s, NOW())",
+                """INSERT INTO question_articles (question_id, article_id, created_at) VALUES (%s, %s, NOW())
+                ON CONFLICT (question_id, article_id)
+                DO UPDATE SET
+                        question_id = EXCLUDED.question_id,
+                        article_id = EXCLUDED.article_id,
+                        created_at= NOW()
+                RETURNING *; """,
                 (question_id, article_id)
-                
-
             )
             conn.commit()
 
