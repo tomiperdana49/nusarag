@@ -1,7 +1,7 @@
 from flask import Flask, jsonify, request, g, render_template, redirect, url_for
 from flask_cors import CORS
 from service.service import ArticleService, QuestionService, OrganizationService, AskService
-from validation.validation import validate_article, validate_question, validate_organizations, validate_question_article_batch
+from validation.validation import validate_article, validate_question, validate_organizations, validate_question_article_batch, validate_article_batch, validate_question_batch
 
 app = Flask(__name__)
 CORS(app)
@@ -89,10 +89,6 @@ def create_question_articles_batch():
             "error": str(e)
         }), 500
 
-
-
-
-
 @app.route("/questions/<int:id>", methods=["GET"])
 def get_questions_by_id(id):
     try:
@@ -142,6 +138,54 @@ def ask():
         return jsonify({"success": True, "data": asking})
     except Exception as e:
         return jsonify({"success": False, "message": "Gagal mendapatkan jawaban", "error": str(e)}), 500
+
+@app.route("/questionsbatch", methods=["POST"])
+@validate_question_batch
+def create_questions_batch():
+    data = g.question_batch_data
+    try:
+        result = q_service.create_question_batch(data)
+
+        if result.get("success") is False:
+            return jsonify(result), 400
+
+        return jsonify({
+            "success": True,
+            "message": f"{len(data)} questions successfully processed",
+            "data": result.get("data", [])
+        }), 201
+
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": "An error occurred while processing question batch.",
+            "error": str(e)
+        }), 500
+
+# Endpoint: /articles
+@app.route("/articlesbatch", methods=["POST"])
+@validate_article_batch
+def create_articles_batch_v():
+    data = g.article_batch_data
+    try:
+        result = a_service.create_article_batch(data)
+
+        if result.get("success") is False:
+            return jsonify(result), 400
+
+        return jsonify({
+            "success": True,
+            "message": f"{len(data)} articles successfully processed",
+            "data": result.get("data", [])
+        }), 201
+
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": "An error occurred while processing article batch.",
+            "error": str(e)
+        }), 500
+
 
 
 if __name__ == "__main__":

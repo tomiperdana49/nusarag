@@ -43,6 +43,50 @@ class ArticleService:
 
         return dict(zip(column_names, result))
     
+    def create_article_batch(self, pairs: list[dict]):
+        conn = get_connection()
+        cur = conn.cursor()
+        try:
+                for item in pairs:
+                    article_id = item["id"]
+                    title = item["title"]
+                    content = item["content"]
+                    author = item["author"]
+                    organization_id = item["organization_id"]
+                    status = item["status"]
+                    created_by = item["created_by"]
+                    updated_by = item["updated_by"]
+
+                    cur.execute(
+                        """
+                        INSERT INTO articles (id, title, content, author, organization_id, status, created_by, updated_by)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                                ON CONFLICT (id)
+                                DO UPDATE SET
+                                    title = EXCLUDED.title,
+                                    content = EXCLUDED.content,
+                                    author = EXCLUDED.author,
+                                    organization_id = EXCLUDED.organization_id,
+                                    status = EXCLUDED.status,
+                                    created_by = EXCLUDED.created_by,
+                                    updated_by = EXCLUDED.updated_by
+                                RETURNING *
+                        """,
+                        (article_id, title, content, author, organization_id, status, created_by, updated_by)
+                    )
+
+                conn.commit()
+                return {"success": True} 
+
+        except Exception as e:
+                conn.rollback()
+                raise e
+
+        finally:
+                cur.close()
+                conn.close()
+
+    
     # Mengakses seluruh data artikel pada database
     def get_all_articles(self):
         conn = get_connection()
@@ -135,6 +179,49 @@ class QuestionService:
         finally:
             cur.close()
             conn.close()
+
+    def create_question_batch(self, pairs: list[dict]):
+        conn = get_connection()
+        cur = conn.cursor()
+        try:
+                for item in pairs:
+                    question_id = item["id"]
+                    question = item["question"]
+                    question_vector = convert(item["question"])
+                    organization_id = item["organization_id"]
+                    created_by = item["created_by"]
+                    updated_by = item["updated_by"]
+                    status = item["status"]
+
+                    cur.execute(
+                        """
+                            INSERT INTO questions (
+                                id, question, question_vector, organization_id, created_by, updated_by, status
+                            ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+                            ON CONFLICT (id)
+                                DO UPDATE SET
+                                    question = EXCLUDED.question,
+                                    question_vector = EXCLUDED.question_vector,
+                                    organization_id = EXCLUDED.organization_id,
+                                    created_by = EXCLUDED.created_by,
+                                    updated_by = EXCLUDED.updated_by,
+                                    status = EXCLUDED.status
+                            RETURNING *;
+                        """,
+                        (question_id, question, question_vector, organization_id, created_by, updated_by, status)
+                    )
+
+                conn.commit()
+                return {"success": True} 
+
+        except Exception as e:
+                conn.rollback()
+                raise e
+
+        finally:
+                cur.close()
+                conn.close()
+
 
 
     def attach_articles_to_questions_batch(self, pairs: list[dict]):
