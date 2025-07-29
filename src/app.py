@@ -72,10 +72,23 @@ def create_questions():
 def create_question_articles_batch():
     data = g.question_article_batch_data
     try:
-        q_service.attach_articles_to_questions_batch(data)
-        return jsonify({"success": True, "message": f"{len(data)} relasi berhasil dibuat"}), 201
+        result = q_service.attach_articles_to_questions_batch(data)
+        
+        if result.get("success") is False:
+            return jsonify(result), 400  # Bad request for invalid ID
+        
+        return jsonify({
+            "success": True,
+            "message": f"{len(data)} relasi berhasil dibuat"
+        }), 201
+
     except Exception as e:
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({
+            "success": False,
+            "message": "Terjadi kesalahan saat menyimpan data.",
+            "error": str(e)
+        }), 500
+
 
 
 

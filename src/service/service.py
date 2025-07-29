@@ -141,6 +141,26 @@ class QuestionService:
         conn = get_connection()
         cur = conn.cursor()
 
+        checkQ = list({q["question_id"] for q in pairs})
+        checkA = list({a["article_id"] for a in pairs})
+
+        cur.execute("SELECT id FROM questions WHERE id = ANY(%s)", (checkQ,))
+        foundQ = {row[0] for row in cur.fetchall()}
+
+        cur.execute("SELECT id FROM articles WHERE id = ANY(%s)", (checkA,))
+        foundA = {row[0] for row in cur.fetchall()}
+
+        missingQ = set(checkQ) - foundQ
+        missingA = set(checkA) - foundA
+
+        if missingQ or missingA:
+            return {
+                    "success": False,
+                    "message": "ID tidak valid.",
+                    "missing_questions": list(missingQ),
+                    "missing_articles": list(missingA),
+            }
+            
         cur.execute("DELETE FROM question_articles;")
         conn.commit()
         try:
@@ -163,6 +183,7 @@ class QuestionService:
                 )
 
             conn.commit()
+            return {"success": True} 
 
         except Exception as e:
             conn.rollback()
@@ -171,10 +192,6 @@ class QuestionService:
         finally:
             cur.close()
             conn.close()
-
-    
-
-
 
     def get_all_question(self):
         conn = get_connection()
