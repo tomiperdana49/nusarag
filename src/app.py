@@ -1,6 +1,6 @@
 from flask import Flask, jsonify, request, g, render_template, redirect, url_for
 from flask_cors import CORS
-from service.service import ArticleService, QuestionService, OrganizationService, AskService
+from service.service import ArticleService, QuestionService, OrganizationService, AskService, LogService
 from validation.validation import validate_article, validate_question, validate_organizations, validate_question_article_batch, validate_article_batch, validate_question_batch
 
 app = Flask(__name__)
@@ -10,6 +10,7 @@ a_service = ArticleService()
 q_service = QuestionService()
 o_service = OrganizationService()
 ak_service = AskService()
+l_service = LogService()
 
 @app.route("/", methods=["GET"])
 def main():
@@ -186,6 +187,15 @@ def create_articles_batch_v():
             "error": str(e)
         }), 500
 
+@app.route("/log", methods=["GET"])
+def getLog():
+    data = l_service.get_log()
+    return jsonify(data)
+
+@app.route("/getArticle", methods=['GET'])
+def getArticleId():
+    data = a_service.get_article_by_id()
+    return jsonify(data)
 
 
 if __name__ == "__main__":

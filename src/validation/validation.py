@@ -210,8 +210,6 @@ def validate_question_batch(func):
     wrapper.__name__ = func.__name__
     return wrapper
 
-
-
 def validate_organizations(func):
     def wrapper(*args, **kwargs):
         data = request.get_json()

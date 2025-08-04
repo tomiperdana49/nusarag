@@ -127,6 +127,19 @@ class ArticleService:
 
         return dict(zip(column_names, row)) if row else None
     
+    def getArticle_Id(self):
+        conn = get_connection()
+        cur = conn.cursor()
+
+        cur.execute("SELECT id, title FROM articles;")
+        rows = cur.fetchall()
+        columns = [desc[0] for desc in cur.description]
+        cur.close()
+        conn.close()
+
+        result = [dict(zip(columns, row)) for row in rows]
+        return result
+
 class QuestionService:
     def create_questions(self, questions):
         conn = get_connection()
@@ -399,7 +412,7 @@ class OrganizationService:
         cur = conn.cursor()
 
         query= """
-                SELECT * FROM organizations
+                SELECT id, name FROM organizations
             """
         
         cur.execute(query)
@@ -453,3 +466,18 @@ class AskService:
         if not question_text and user_id:
             raise ValueError("Kunci 'question' tidak ditemukan dalam body request JSON.")
         return ask(question_text, user_id, organization_id)
+
+class LogService:
+     def get_Log(self):
+        conn = get_connection()
+        cur = conn.cursor()
+
+        cur.execute("SELECT * FROM log;")
+        rows = cur.fetchall()
+        columns = [desc[0] for desc in cur.description]  # Ambil nama kolom
+        cur.close()
+        conn.close()
+
+        # Ubah setiap row menjadi dictionary
+        result = [dict(zip(columns, row)) for row in rows]
+        return result

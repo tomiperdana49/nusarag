@@ -106,17 +106,19 @@ def find_history(session_id, organization_id):
     cur = conn.cursor()
 
     query = """
-        SELECT
-            question,
-            response
-        FROM
-            history
-        WHERE
-            session_id = %s
-            AND organization_id = %s
-        ORDER BY time DESC
-        LIMIT 10
-    """ 
+                SELECT
+                    question,
+                    response
+                FROM
+                    history
+                WHERE
+                    session_id = %s
+                    AND organization_id = %s
+                    AND time >= NOW() - INTERVAL '24 HOURS'
+                ORDER BY
+                    time DESC
+                LIMIT 10;
+            """
     
     cur.execute(query, (session_id, organization_id))
     result = cur.fetchall()
@@ -414,7 +416,7 @@ def ask(question: str, session_id: str, organization_id: int):
 # Prompt template
 prompt_sum = PromptTemplate.from_template(
     """
-        Ringkaskan apa yang dimaksud penanya berikut ini dalam satu kalimat berdasarkan riwayat percakapan sebelumnya dan pertanyaan terakhir
+        Ringkaskan apa yang dimaksud penanya berikut ini dalam satu kalimat berdasarkan riwayat percakapan sebelumnya dan pertanyaan terakhir. Pastikan jawaban anda dalam bentuk pertanyaan bukan pernyataan.
 
         Riwayat percakapan sebelumnya:
         {history}
