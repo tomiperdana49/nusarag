@@ -189,12 +189,12 @@ def create_articles_batch_v():
 
 @app.route("/log", methods=["GET"])
 def getLog():
-    data = l_service.get_log()
+    data = l_service.get_Log()
     return jsonify(data)
 
 @app.route("/getArticle", methods=['GET'])
 def getArticleId():
-    data = a_service.get_article_by_id()
+    data = a_service.getArticle_Id()
     return jsonify(data)
 
 
