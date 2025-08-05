@@ -131,7 +131,7 @@ class ArticleService:
         conn = get_connection()
         cur = conn.cursor()
 
-        cur.execute("SELECT id, title FROM articles;")
+        cur.execute("SELECT id, title, content FROM articles;")
         rows = cur.fetchall()
         columns = [desc[0] for desc in cur.description]
         cur.close()

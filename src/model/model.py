@@ -150,10 +150,11 @@ def save_log(data):
             context,
             system_instruction,
             response,
+            session_id,
             summary,
             sum_vector
         ) VALUES (
-            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
         )
         RETURNING id
     """
@@ -168,6 +169,7 @@ def save_log(data):
             data['context'],
             data['system_instruction'],
             data['response'],
+            data['session_id'],
             data['summary'],
             data['vector']
         ))
@@ -250,6 +252,7 @@ def ask(question: str, session_id: str, organization_id: int):
                 "context": "Not Found",
                 "system_instruction": reformat_notfoundh,
                 "response": res_nf.content,
+                "session_id": session_id,
                 "summary": res_sum.content,
                 "vector": convert(res_sum.content)
             }
@@ -305,6 +308,7 @@ def ask(question: str, session_id: str, organization_id: int):
                 "context": context,
                 "system_instruction": reformat_ans_h,
                 "response": res_ans_h.content,
+                "session_id": session_id,
                 "summary": res_sum.content,
                 "vector": convert(res_sum.content)
             }
@@ -342,6 +346,7 @@ def ask(question: str, session_id: str, organization_id: int):
                 "context": "Not Found",
                 "system_instruction": reformat_notfound,
                 "response": res_nf.content,
+                "session_id": session_id,
                 "summary": "Not Have Summary",
                 "vector": convert(question)
             }
@@ -393,6 +398,7 @@ def ask(question: str, session_id: str, organization_id: int):
                 "context": context,
                 "system_instruction": reformat_ans,
                 "response": res_ans.content,
+                "session_id": session_id,
                 "summary": "Percakapan awal",
                 "vector": convert(question)
             }
