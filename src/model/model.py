@@ -422,13 +422,21 @@ def ask(question: str, session_id: str, organization_id: int):
 # Prompt template
 prompt_sum = PromptTemplate.from_template(
     """
-        Ringkaskan apa yang dimaksud penanya berikut ini dalam satu kalimat berdasarkan riwayat percakapan sebelumnya dan pertanyaan terakhir. Pastikan jawaban anda dalam bentuk pertanyaan bukan pernyataan.
+        Gabungkan informasi dari riwayat pertanyaan sebelumnya dengan pertanyaan terakhir
+        untuk membentuk satu pertanyaan tunggal yang jelas, ringkas, dan lengkap.
+
+        - Pastikan semua konteks penting dari riwayat pertanyaan tetap ada.
+        - Hindari menyalin mentah pertanyaan terakhir, tapi perjelas maksudnya tapi jangan menambahkan kata-kata yang mengubah maknanya.
+        - Gunakan bahasa yang mudah dipahami.
 
         Riwayat percakapan sebelumnya:
         {history}
 
         Pertanyaan terakhir:
         {question}
+
+        Hasil (1 pertanyaan tunggal):
+
     """
 )
 

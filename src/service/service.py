@@ -472,7 +472,25 @@ class LogService:
         conn = get_connection()
         cur = conn.cursor()
 
-        cur.execute("SELECT * FROM log;")
+        cur.execute("""
+                        SELECT
+                            l.id,
+                            l.session_id,
+                            l.time,
+                            o.name AS organization_id,
+                            l.question,
+                            l.similar_question,
+                            l.similarity,
+                            l.context,
+                            l.system_instruction,
+                            l.response,
+                            l.summary,
+                            l.sum_vector
+                        FROM log l
+                        LEFT JOIN organizations o
+                            ON l.organization_id = o.id;
+                    """)
+
         rows = cur.fetchall()
         columns = [desc[0] for desc in cur.description]  # Ambil nama kolom
         cur.close()
