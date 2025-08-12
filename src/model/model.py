@@ -37,7 +37,6 @@ def match_question(question:str, organization_id: int):
 
     if q_vector is None:
         return[{"article_content": "Tidak dapat melakukan konversi vektor"}]
-    
     try:
         query = """
                     SELECT
@@ -54,11 +53,9 @@ def match_question(question:str, organization_id: int):
                     JOIN
                         articles a ON qa.article_id = a.id
                     WHERE
-                        (1 - (q.question_vector <=> %s::vector)) >= 0.7 AND q.organization_id = %s AND a.organization_id = %s
-                    ORDER BY
-                        cosine_similarity DESC;
+                        (1 - (q.question_vector <=> %s::vector)) >= 0.7 AND q.organization_id = %s
                 """
-        cur.execute(query, (q_vector, q_vector, organization_id, organization_id))
+        cur.execute(query, (q_vector, q_vector, organization_id,))
         results = cur.fetchall()
 
         grouped = {}
