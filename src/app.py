@@ -1,6 +1,6 @@
 from flask import Flask, jsonify, request, g, render_template, redirect, url_for
 from flask_cors import CORS
-from service.service import ArticleService, QuestionService, OrganizationService, AskService, LogService
+from service.service import ArticleService, QuestionService, OrganizationService, AskService, LogService, webHook
 from validation.validation import validate_article, validate_question, validate_organizations, validate_question_article_batch, validate_article_batch, validate_question_batch
 
 app = Flask(__name__)
@@ -11,6 +11,7 @@ q_service = QuestionService()
 o_service = OrganizationService()
 ak_service = AskService()
 l_service = LogService()
+h = webHook()
 
 @app.route("/", methods=["GET"])
 def main():
@@ -196,6 +197,12 @@ def getLog():
 def getArticleId():
     data = a_service.getArticle_Id()
     return jsonify(data)
+
+@app.route("/listenHook", methods=['POST'])
+def listener():
+    payload = request.data.decode("utf-8")
+    save = h.setListenerHook(payload)
+    return "ok", 200
 
 
 if __name__ == "__main__":

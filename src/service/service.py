@@ -499,3 +499,14 @@ class LogService:
         # Ubah setiap row menjadi dictionary
         result = [dict(zip(columns, row)) for row in rows]
         return result
+
+class webHook:
+    def setListenerHook(self, payload):
+        conn = get_connection()
+        try:
+            with conn.cursor() as cur:
+                cur.execute("INSERT INTO hook_data (datas) VALUES (%s)", (payload,))
+            conn.commit()
+            print("✅ Payload berhasil disimpan")
+        except Exception as e:
+            print("❌ Error:", e)
