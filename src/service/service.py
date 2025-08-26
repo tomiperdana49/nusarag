@@ -140,6 +140,17 @@ class ArticleService:
         result = [dict(zip(columns, row)) for row in rows]
         return result
 
+    def deleteArticle(self, articelId):
+        conn = get_connection();
+        cur = conn.cursor()
+
+        cur.execute("DELETE FROM articles WHERE id = %s", (articelId.get("id"),))
+        conn.commit()  # pastikan perubahan disimpan
+
+        cur.close()
+        conn.close()
+        return "ok", 200
+
 class QuestionService:
     def create_questions(self, questions):
         conn = get_connection()

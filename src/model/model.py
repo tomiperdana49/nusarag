@@ -78,7 +78,7 @@ def match_question(question:str, organization_id: int):
         if not grouped:
             return [{
                 "question": question,
-                "article_content": f"""Mohon maaf pertanyaan anda mengenai {question} belum dapat saya jawab. Silahkan hubungi nusa.net.id""",
+                "article_content": f"""Mohon maaf pertanyaan anda mengenai {question} belum dapat saya jawab. Silahkan hubungi nusa.net.id. Gunakan Bahasa Indonesia atau Inggris sesuai dengan pertanyaan user {question}""",
                 "similarity": "0",
             }]
         
@@ -228,7 +228,12 @@ def ask(question: str, session_id: str, organization_id: int):
 
         res_sum = llm.invoke(reformat_sum)
 
-        q_data = match_question(res_sum.content, organization_id)
+        reformat_q = prompt_translate_h.format(
+            history = res_sum.content
+        )
+        res_t = llm.invoke(reformat_q)
+
+        q_data = match_question(res_t.content, organization_id)
 
         if not q_data or "articles" not in q_data[0]:
             reformat_notfoundh = prompt_notfoundh.format(
@@ -323,7 +328,11 @@ def ask(question: str, session_id: str, organization_id: int):
 
         return res_ans_h.content, res_sum.content, "Article Found"
     else:
-        q_data = match_question(question, organization_id)
+        reformat_q = prompt_translate.format(
+            question = question
+        )
+        res_tranlate = llm.invoke(reformat_q)
+        q_data = match_question(res_tranlate.content, organization_id)
         if not q_data or "articles" not in q_data[0]:
             
             reformat_notfound = prompt_notfound.format(
@@ -416,96 +425,166 @@ def ask(question: str, session_id: str, organization_id: int):
 
 
 
-# Prompt template
 prompt_sum = PromptTemplate.from_template(
     """
+        ⚠️ RULE PENTING:
+        Selalu deteksi bahasa dari {question} dan JAWAB dengan bahasa YANG SAMA.
+        Jika user pakai bahasa Inggris → jawab dalam bahasa Inggris.
+        Jika user pakai bahasa Indonesia → jawab dalam bahasa Indonesia.
+        Jika campuran, pilih bahasa yang paling dominan.
+
+        Tugas pertama kamu adalah mendeteksi bahasa yang digunakan oleh user melalui {question}. 
+        Gunakan bahasa serupa dalam menjawab.
         Gabungkan informasi dari riwayat pertanyaan sebelumnya dengan pertanyaan terakhir
         untuk membentuk satu pertanyaan tunggal yang jelas, ringkas, dan lengkap.
 
         - Pastikan semua konteks penting dari riwayat pertanyaan tetap ada.
-        - Hindari menyalin mentah pertanyaan terakhir, tapi perjelas maksudnya tapi jangan menambahkan kata-kata yang mengubah maknanya.
-        - Gunakan bahasa yang mudah dipahami.
+        - Hindari menyalin mentah pertanyaan terakhir, tapi perjelas maksudnya tanpa mengubah makna.
+        - Gunakan bahasa Indonesia atau Inggris (sesuai dengan bahasa pertanyaan terakhir user).
+        - Jika ada pertanyaan campuran, gunakan bahasa yang paling dominan.
 
         Riwayat percakapan sebelumnya:
         {history}
-
         Pertanyaan terakhir:
         {question}
-
-        Hasil (1 pertanyaan tunggal):
-
+        Hasil (1 pertanyaan tunggal) dalam bahasa yang sesuai dengan pertanyaan terakhir:
     """
 )
 
 prompt_notfoundh = PromptTemplate.from_template(
     """
+        ⚠️ RULE PENTING:
+        Selalu deteksi bahasa dari {question} dan JAWAB dengan bahasa YANG SAMA.
+        Jika user pakai bahasa Inggris → jawab dalam bahasa Inggris.
+        Jika user pakai bahasa Indonesia → jawab dalam bahasa Indonesia.
+        Ingat apapun yang terjadi gunakan bahasa yang sesuai dengan bahasa pertanyaan.
+
         Anda adalah asisten cerdas yang membantu Nusanet untuk menjawab pertanyaan yang tidak ada artikelnya.
 
         Aturan kamu dalam menjawab adalah:
-        1. Gunakan bahasa indoensia yang baik dan benar serta sopan dan profesional. Dan buat responnya seperti meminta maaf juga.
-        2. Karena artikel untuk menjawab pertanyaan tidak ada, silahkan menjawab untuk menghubungi nusa.net.id
-        3. Tetapi jika ada informasi melalui history silahkan di jawab, namun harus sesuai konteks dari pertanyaan. Jika tidak ada konteks, jangan dijawab
-        4. Ingat juga bahwa saat ini bulan {month} dan tahun {year}. Jika ada pertanyaan yang ada konteks waktu bulan dan tahun, sesuaikan dengan informasi bulan dan tahun saat ini. Jadi jangan memberikan inforami yang sudah berlalu jika ada konteks bulan dan tahunnya
-        
-        Adapun pertanyaan yang diajukan oleh user adalah
+        1. Gunakan bahasa Indonesia atau Inggris (sesuai bahasa user) yang baik, benar, sopan, dan profesional. 
+           Buat responnya seperti meminta maaf juga. 
+        2. Karena artikel tidak ada, arahkan user untuk menghubungi nusa.net.id.
+        3. Jika ada informasi melalui history, silakan jawab sesuai konteks. Jika tidak ada konteks, jangan dijawab.
+        4. Ingat juga saat ini bulan {month} dan tahun {year}. Jika ada pertanyaan terkait waktu, sesuaikan dengan bulan & tahun saat ini. 
+           Jangan memberi informasi yang sudah berlalu.
+
+        Adapun pertanyaan yang diajukan oleh user adalah:
         {question}
 
-        Adapun historynya adalah :
+        Adapun historynya adalah:
         {history}
     """
 )
 
 prompt_answrh = PromptTemplate.from_template(
     """
-                Kamu adalah Naila (Nusa Artificial Intelligance Liaison Assistant. Kamu adalah asisten cerdas yang akan membantu dalam meringkas history pertanyaan customer sebelumnya
+        ⚠️ RULE PENTING:
+        Selalu deteksi bahasa dari {question} dan JAWAB dengan bahasa YANG SAMA.
+        Jika user pakai bahasa Inggris → jawab dalam bahasa Inggris.
+        Jika user pakai bahasa Indonesia → jawab dalam bahasa Indonesia.
+        Ingat jika konteks terkait ataupun history menggunakan bahasa indonesia tapi pertanyaan menggunakan bahasa inggris translate semuanya sehingga anda tetap menjawab kedalam bahasa inggris
 
-                Aturan kamu sebagai asisten adalah:
-                    1. Gunakan bahasa indonesia yang baik dan benar, serta profesional. Jangan pernah menyebutkan kata ringkasan.
-                    2. Selalu jawab pertanyaan sesuai dengan konteks, jangan menjelaskan apapun yang tidak sesuai
-                    3. Informasi yang kamu berikan harus informatif dan jelas. Setiap ada kontak yang dapat dihubungi harus kamu sertakan.
-                    4. Kamu harus selalu ingat tanggal, bulan, dan tahun saat ini, sehingga jika ada pertanyaan terkait waktu, kamu harus bisa sesuaikan dan saat ini {month} {year}
-                    5. Jika ada informasi terkait di history harus kamu sertakan.
-                            
-                Berikut adalah pertanyaan user:
-                {question}
+        Kamu adalah Naila (Nusa Artificial Intelligence Liaison Assistant). 
+        Kamu adalah asisten cerdas yang membantu meringkas history pertanyaan customer sebelumnya.
 
-                Berikut adalah konteks terkait:
-                {articles}
+        Aturan kamu sebagai asisten adalah:
+        1. Gunakan bahasa Indonesia atau Inggris (sesuai bahasa user) yang baik dan profesional. 
+           Jangan pernah menyebutkan kata ringkasan.
+        2. Jawab pertanyaan sesuai konteks, jangan menjelaskan yang tidak relevan.
+        3. Informasi harus jelas dan informatif. Jika ada kontak yang bisa dihubungi, sertakan.
+        4. Ingat tanggal, bulan, dan tahun saat ini: {month} {year}.
+        5. Jika ada informasi terkait di history, sertakan.
 
-                Adapun history percakapan sebelumnya:
-                {history}
-    """)
+        Berikut adalah pertanyaan user:
+        {question}
+
+        Berikut adalah konteks terkait:
+        {articles}
+
+        Adapun history percakapan sebelumnya:
+        {history}
+    """
+)
 
 prompt_notfound = PromptTemplate.from_template(
     """
+        ⚠️ RULE PENTING:
+        Selalu deteksi bahasa dari {question} dan JAWAB dengan bahasa YANG SAMA.
+        Jika user pakai bahasa Inggris → jawab dalam bahasa Inggris.
+        Jika user pakai bahasa Indonesia → jawab dalam bahasa Indonesia.
+
         Anda adalah asisten cerdas yang membantu Nusanet untuk menjawab pertanyaan yang tidak ada artikelnya.
 
         Aturan kamu dalam menjawab adalah:
-        1. Gunakan bahasa indoensia yang baik dan benar serta sopan dan profesional. Dan buat responnya seperti meminta maaf juga.
-        2. Karena artikel untuk menjawab pertanyaan tidak ada, silahkan menjawab untuk menghubungi nusa.net.id
-        3. Ingat juga bahwa saat ini bulan {month} dan tahun {year}. Jika ada pertanyaan yang ada konteks waktu bulan dan tahun, sesuaikan dengan informasi bulan dan tahun saat ini. Jadi jangan memberikan inforami yang sudah berlalu jika ada konteks bulan dan tahunnya
-        
-        Adapun pertanyaan yang diajukan oleh user adalah
+        1. Gunakan bahasa Indonesia atau Inggris (sesuai bahasa user) yang baik, benar, sopan, dan profesional. 
+           Buat responnya seperti meminta maaf juga.
+        2. Karena artikel tidak ada, arahkan user untuk menghubungi nusa.net.id.
+        3. Ingat juga saat ini bulan {month} dan tahun {year}. Jika ada pertanyaan terkait waktu, sesuaikan dengan bulan & tahun saat ini. 
+           Jangan memberi informasi yang sudah berlalu.
+
+        Adapun pertanyaan yang diajukan oleh user adalah:
         {question}
     """
 )
 
 prompt_answr = PromptTemplate.from_template(
     """
-                Kamu adalah Naila (Nusa Artificial Intelligance Liaison Assistant. Kamu adalah asisten cerdas yang akan membantu dalam meringkas history pertanyaan customer sebelumnya
+        ⚠️ RULE SUPER PENTING:
+        Jawablah SELALU dengan bahasa yang sama seperti pertanyaan user ({question}).
+        - Jika user pakai bahasa Inggris → terjemahkan semua artikel {articles} ke bahasa Inggris sebelum menjawab.
+        - Jika user pakai bahasa Indonesia → jawab dengan bahasa Indonesia.
+        - Jika campuran, gunakan bahasa dominan user.
 
-                Aturan kamu sebagai asisten adalah:
-                    1. Gunakan bahasa indonesia yang baik dan benar, serta profesional. Jangan pernah menyebutkan kata ringkasan                   2. Selalu jawab pertanyaan sesuai dengan konteks, jangan menjelaskan apapun yang tidak sesuai
-                    3. Informasi yang kamu berikan harus informatif dan jelas. Setiap ada kontak yang dapat dihubungi harus kamu sertakan.
-                    4. Kamu harus selalu ingat tanggal, bulan, dan tahun saat ini, sehingga jika ada pertanyaan terkait waktu, kamu harus bisa sesuaikan dan saat ini {month} {year}
-                            
-                Berikut adalah pertanyaan user:
-                {question}
+        Kamu adalah Naila (Nusa Artificial Intelligence Liaison Assistant).
+        Kamu asisten cerdas yang membantu meringkas informasi untuk user.
 
-                Berikut adalah konteks terkait:
-                {articles}
+        Aturan menjawab:
+        1. Gunakan bahasa {question} sebagai patokan.
+        2. Jangan pernah menjawab dengan bahasa lain meskipun artikel {articles} berbeda bahasa.
+        3. Jawab profesional, jelas, informatif. Sertakan kontak jika relevan.
+        4. Ingat sekarang bulan {month} {year}.
+        5. Jika ada history, gunakan sesuai konteks.
 
-    """)
+        Pertanyaan user:
+        {question}
+
+        Artikel terkait (bisa berbeda bahasa, translate dulu ke bahasa user!):
+        {articles}
+    """
+)
 
 
-    
+prompt_translate = PromptTemplate.from_template(
+    """
+        Tugas kamu adalah menerjemahkan pertanyaan berikut ke dalam bahasa Indonesia, 
+        khusus untuk kebutuhan pencarian artikel di knowledge base.
+
+        Aturan:
+        1. Jika pertanyaan sudah menggunakan bahasa Indonesia → jangan diterjemahkan, kembalikan persis sama tanpa perubahan.
+        2. Jika pertanyaan menggunakan bahasa Inggris → terjemahkan ke bahasa Indonesia.
+        3. Jika pertanyaan campuran (Indonesia + Inggris) → terjemahkan semua ke bahasa Indonesia.
+        4. Jangan menambah atau mengurangi kata. Pertahankan tanda baca, simbol tanya (?), dan format aslinya.
+
+        Pertanyaan user: {question}
+
+        Hasil (pertanyaan dalam bahasa Indonesia):
+    """
+)
+
+prompt_translate_h = PromptTemplate.from_template(
+    """
+        Tugas kamu adalah menerjemahkan gabungan riwayat pertanyaan berikut ke dalam bahasa Indonesia,
+        khusus untuk kebutuhan pencarian artikel di knowledge base.
+
+        Aturan:
+        1. Jika teks sudah menggunakan bahasa Indonesia → jangan diterjemahkan, kembalikan persis sama tanpa perubahan.
+        2. Jika teks menggunakan bahasa Inggris → terjemahkan ke bahasa Indonesia.
+        3. Jika teks campuran (Indonesia + Inggris) → terjemahkan semua ke bahasa Indonesia.
+        4. Jangan menambah atau mengurangi kata. Pertahankan tanda baca, simbol tanya (?), dan format aslinya.
+
+        Riwayat pertanyaan user: {history}
+
+        Hasil (dalam bahasa Indonesia):
+    """
+)

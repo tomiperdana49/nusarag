@@ -204,6 +204,14 @@ def listener():
     save = h.setListenerHook(payload)
     return "ok", 200
 
+@app.route("/deleteArticle", methods=['POST'])
+def clearArticle():
+    articleId = request.get_json();
+    if articleId is None:
+        return "Id is None", 404
+    deleteArticel = a_service.deleteArticle(articleId);
+    if deleteArticel is not None:
+        return"ok", 200
 
 if __name__ == "__main__":
     app.run(debug=True)
