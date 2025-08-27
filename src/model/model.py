@@ -57,7 +57,6 @@ def match_question(question:str, organization_id: int):
                 """
         cur.execute(query, (q_vector, q_vector, organization_id,))
         results = cur.fetchall()
-
         grouped = {}
         for row in results:
             qid = row[0]
