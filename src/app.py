@@ -2,9 +2,14 @@ from flask import Flask, jsonify, request, g, render_template, redirect, url_for
 from flask_cors import CORS
 from service.service import ArticleService, QuestionService, OrganizationService, AskService, LogService, webHook
 from validation.validation import validate_article, validate_question, validate_organizations, validate_question_article_batch, validate_article_batch, validate_question_batch
+from validation.authentication import tokenService,require_token
+import os, jwt
+from dotenv import load_dotenv
+load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
+app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
 
 a_service = ArticleService()
 q_service = QuestionService()
@@ -12,8 +17,26 @@ o_service = OrganizationService()
 ak_service = AskService()
 l_service = LogService()
 h = webHook()
+t_service = tokenService()
+
+#=============================#
+# TOKENISASI
+#=============================#
+
+@app.route("/getToken", methods=["POST"])
+def get_token():
+    auth = request.headers.get("Authorization")
+    if not auth or not auth.startswith("Basic "):
+        return jsonify({"error": "Invalid auth"}), 401
+    payload = t_service.getToken(auth)
+    if not payload or "error" in payload:
+        return payload
+    token = jwt.encode(payload, app.config["SECRET_KEY"], algorithm="HS256")
+
+    return jsonify({"access_token": token, "token_type": "Bearer", "expires_in": 3600})
 
 @app.route("/", methods=["GET"])
+@require_token(role="public")
 def main():
     return jsonify({
         "status": "OK",

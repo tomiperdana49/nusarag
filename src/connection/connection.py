@@ -1,7 +1,7 @@
 import psycopg2
 import os
 from dotenv import load_dotenv
-
+import psycopg2.extras 
 load_dotenv()
 
 def get_connection():
@@ -10,5 +10,6 @@ def get_connection():
         port=os.getenv("DB_PORT"),
         database=os.getenv("DB_NAME"),
         user=os.getenv("DB_USER"),
-        password=os.getenv("DB_PASSWORD")
+        password=os.getenv("DB_PASSWORD"),
+        cursor_factory=psycopg2.extras.RealDictCursor
     )
