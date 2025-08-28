@@ -4,6 +4,7 @@ from service.service import ArticleService, QuestionService, OrganizationService
 from validation.validation import validate_article, validate_question, validate_organizations, validate_question_article_batch, validate_article_batch, validate_question_batch
 from validation.authentication import tokenService,require_token
 import os, jwt
+import requests
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -22,7 +23,6 @@ t_service = tokenService()
 #=============================#
 # TOKENISASI
 #=============================#
-
 @app.route("/getToken", methods=["POST"])
 def get_token():
     auth = request.headers.get("Authorization")
@@ -35,6 +35,81 @@ def get_token():
 
     return jsonify({"access_token": token, "token_type": "Bearer", "expires_in": 3600})
 
+#=============================#
+# Autogen Token
+#=============================#
+@app.route("/requestAccessNusa", methods=["POST"])
+def get_access():
+    body = request.get_json();
+    if body is None:
+        return jsonify({"error": "Data is none"}), 404
+    check = t_service.checkUsers(body)
+    if check == False:
+        return jsonify({"error": "Your email is invalid"}), 401
+
+    resp = requests.post(
+       os.getenv("TOKEN_API"),
+        auth=(os.getenv("NUSA_ID"), os.getenv("NUSA_SECRET"))
+    )
+    if resp.status_code != 200:
+        return jsonify({"error": "cannot get token"}), 500
+    token = resp.json()["access_token"]
+    method = body.get("method", "POST").upper()
+    url_target = body.get("url_target")
+    payload = body.get("payload")
+    if method == "POST":
+        api_resp = requests.post(
+            url_target,
+            headers={"Authorization": f"Bearer {token}"},
+            json={"payload":payload},
+        )
+    else:
+       api_resp = requests.get(
+            url_target,
+            headers={"Authorization": f"Bearer {token}"},
+            json={"payload":payload}, 
+       )
+
+    if "application/json" in api_resp.headers.get("Content-Type", ""):
+        result = api_resp.json()
+    else:
+        result = api_resp.text
+    return jsonify(result), api_resp.status_code
+
+@app.route("/requestAccessUsers", methods=["POST"])
+def get_access_user():
+    body = request.get_json();
+    if body is None:
+        return jsonify({"error": "Data is none"}), 404
+    resp = requests.post(
+       os.getenv("TOKEN_API"),
+        auth=(os.getenv("USERS_ID"), os.getenv("USERS_SECRET"))
+    )
+    if resp.status_code != 200:
+        return jsonify({"error": "cannot get token"}), 500
+    token = resp.json()["access_token"]
+    method = body.get("method", "POST").upper()
+    url_target = body.get("url_target")
+    payload = body.get("payload")
+    if method == "POST":
+        api_resp = requests.post(
+            url_target,
+            headers={"Authorization": f"Bearer {token}"},
+            json={"payload":payload},
+        )
+    else:
+       api_resp = requests.get(
+            url_target,
+            headers={"Authorization": f"Bearer {token}"},
+            json={"payload":payload},
+       )
+
+    if "application/json" in api_resp.headers.get("Content-Type", ""):
+        result = api_resp.json()
+    else:
+        result = api_resp.text
+    return jsonify(result), api_resp.status_code
+
 @app.route("/", methods=["GET"])
 @require_token(role="public")
 def main():
@@ -43,7 +118,15 @@ def main():
         "timestamp": __import__('datetime').datetime.utcnow().isoformat(),
         "service": "Seluruh aktivitas dikelola oleh Flask"
     })
-
+@app.route("/test", methods=["POST"])
+@require_token(role="private")
+def testing():
+    body = request.get_json();
+    return jsonify({
+        "payload": body.get("payload", {}),
+        "timestamp": __import__('datetime').datetime.utcnow().isoformat(),
+        "service": "Seluruh aktivitas dikelola oleh Flask"
+    })
 @app.route("/articles", methods=["GET"])
 def get_articles():
     try:

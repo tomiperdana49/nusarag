@@ -31,6 +31,19 @@ class tokenService:
         }
         return payload
 
+    def checkUsers(self, body):
+        email = body.get("email")
+        if not email:
+            return False
+
+        conn = get_connection()
+        try:
+            with conn.cursor() as cur:
+                cur.execute("SELECT 1 FROM users WHERE username = %s LIMIT 1", (email,))
+                return cur.fetchone() is not None
+        finally:
+            conn.close()
+
 def require_token(role=None):
     def decorator(f):
         @wraps(f)
