@@ -61,13 +61,13 @@ def get_access():
         api_resp = requests.post(
             url_target,
             headers={"Authorization": f"Bearer {token}"},
-            json={"payload":payload},
+            json=payload,
         )
     else:
        api_resp = requests.get(
             url_target,
             headers={"Authorization": f"Bearer {token}"},
-            json={"payload":payload}, 
+            json=payload, 
        )
 
     if "application/json" in api_resp.headers.get("Content-Type", ""):
@@ -127,6 +127,7 @@ def testing():
         "timestamp": __import__('datetime').datetime.utcnow().isoformat(),
         "service": "Seluruh aktivitas dikelola oleh Flask"
     })
+
 @app.route("/articles", methods=["GET"])
 def get_articles():
     try:
@@ -136,6 +137,7 @@ def get_articles():
         return jsonify({"success": False, "message": "Gagal mengambil data artikel", "error": str(e)}), 500
 
 @app.route("/articles", methods=["POST"])
+@require_token(role="private")
 @validate_article
 def create_article():
     try:
