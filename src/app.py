@@ -111,7 +111,6 @@ def get_access_user():
     return jsonify(result), api_resp.status_code
 
 @app.route("/", methods=["GET"])
-@require_token(role="public")
 def main():
     return jsonify({
         "status": "OK",
@@ -121,6 +120,16 @@ def main():
 @app.route("/test", methods=["POST"])
 @require_token(role="private")
 def testing():
+    body = request.get_json();
+    return jsonify({
+        "payload": body.get("payload", {}),
+        "timestamp": __import__('datetime').datetime.utcnow().isoformat(),
+        "service": "Seluruh aktivitas dikelola oleh Flask"
+    })
+
+@app.route("/testPublic", methods=["POST"])
+@require_token(role="public")
+def testing_public():
     body = request.get_json();
     return jsonify({
         "payload": body.get("payload", {}),
