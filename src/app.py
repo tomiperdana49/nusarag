@@ -61,13 +61,13 @@ def get_access():
         api_resp = requests.post(
             url_target,
             headers={"Authorization": f"Bearer {token}"},
-            json={"payload":payload},
+            json=payload,
         )
     else:
        api_resp = requests.get(
             url_target,
             headers={"Authorization": f"Bearer {token}"},
-            json={"payload":payload},
+            json=payload, 
        )
 
     if "application/json" in api_resp.headers.get("Content-Type", ""):
@@ -95,13 +95,13 @@ def get_access_user():
         api_resp = requests.post(
             url_target,
             headers={"Authorization": f"Bearer {token}"},
-            json={"payload":payload},
+            json=payload,
         )
     else:
        api_resp = requests.get(
             url_target,
             headers={"Authorization": f"Bearer {token}"},
-            json={"payload":payload},
+            json=payload,
        )
 
     if "application/json" in api_resp.headers.get("Content-Type", ""):
