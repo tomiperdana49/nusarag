@@ -23,7 +23,7 @@ t_service = tokenService()
 #=============================#
 # TOKENISASI
 #=============================#
-@app.route("/getToken", methods=["POST"])
+@app.route("/get-token", methods=["POST"])
 def get_token():
     auth = request.headers.get("Authorization")
     if not auth or not auth.startswith("Basic "):
@@ -38,7 +38,7 @@ def get_token():
 #=============================#
 # Autogen Token
 #=============================#
-@app.route("/requestAccessNusa", methods=["POST"])
+@app.route("/request-access-nusa", methods=["POST"])
 def get_access():
     body = request.get_json();
     if body is None:
@@ -61,13 +61,13 @@ def get_access():
         api_resp = requests.post(
             url_target,
             headers={"Authorization": f"Bearer {token}"},
-            json=payload,
+            json={"payload":payload},
         )
     else:
        api_resp = requests.get(
             url_target,
             headers={"Authorization": f"Bearer {token}"},
-            json=payload, 
+            json={"payload":payload},
        )
 
     if "application/json" in api_resp.headers.get("Content-Type", ""):
@@ -76,7 +76,7 @@ def get_access():
         result = api_resp.text
     return jsonify(result), api_resp.status_code
 
-@app.route("/requestAccessUsers", methods=["POST"])
+@app.route("/request-access-users", methods=["POST"])
 def get_access_user():
     body = request.get_json();
     if body is None:
@@ -127,7 +127,7 @@ def testing():
         "service": "Seluruh aktivitas dikelola oleh Flask"
     })
 
-@app.route("/testPublic", methods=["POST"])
+@app.route("/test-public", methods=["POST"])
 @require_token(role="public")
 def testing_public():
     body = request.get_json();
@@ -138,6 +138,7 @@ def testing_public():
     })
 
 @app.route("/articles", methods=["GET"])
+@require_token(role="private")
 def get_articles():
     try:
         articles = a_service.get_all_articles()
@@ -157,6 +158,7 @@ def create_article():
         return jsonify({"success": False, "message": "Gagal menambahkan artikel", "error": str(e)}), 500
 
 @app.route("/articles/<int:id>", methods=["GET"])
+@require_token(role="private")
 def get_article_by_id(id):
     try:
         article = a_service.get_article_by_id(id)
@@ -169,6 +171,7 @@ def get_article_by_id(id):
 
 # Route menuju question
 @app.route("/questions", methods=["GET"])
+@require_token(role="private")
 def get_all_questions():
     try:
         question = q_service.get_all_question()
@@ -177,6 +180,7 @@ def get_all_questions():
         return jsonify({"success": False, "message": "Gagal mengambil data question", "error": str(e)}), 500
     
 @app.route("/questions", methods=["POST"], endpoint="create_questions")
+@require_token(role="private")
 @validate_question
 def create_questions():
     try:
@@ -187,6 +191,7 @@ def create_questions():
         return jsonify({"success": False, "message": "Gagal menambahkan pertanyaan", "error": str(e)}), 500
     
 @app.route("/question-articles", methods=["POST"])
+@require_token(role="private")
 @validate_question_article_batch
 def create_question_articles_batch():
     data = g.question_article_batch_data
@@ -209,6 +214,7 @@ def create_question_articles_batch():
         }), 500
 
 @app.route("/questions/<int:id>", methods=["GET"])
+@require_token(role="private")
 def get_questions_by_id(id):
     try:
         questions = q_service.get_questions_by_id(id)
@@ -220,6 +226,7 @@ def get_questions_by_id(id):
         return jsonify({"success": False, "message": "Gagal mengambil data questions", "error": str(e)}), 500
  
 @app.route("/organizations", methods=["GET"])
+@require_token(role="private")
 def get_organization():
     try:
         organizations = o_service.get_organizations()
@@ -228,6 +235,7 @@ def get_organization():
         return jsonify({"success": False, "message": "Gagal mengambil data organisasi...", "error": str(e)}), 500
     
 @app.route("/organizations/<int:id>", methods=["GET"])
+@require_token(role="private")
 def get_organizations_by_id(id):
     try:
         organizations = o_service.get_organizations_by_id(id)
@@ -239,6 +247,7 @@ def get_organizations_by_id(id):
         return jsonify({"success": False, "message": "Gagal mengambil data questions", "error": str(e)}), 500
 
 @app.route("/organizations", methods=["POST"])
+@require_token(role="private")
 @validate_organizations
 def create_organizations():
     try:
@@ -258,7 +267,8 @@ def ask():
     except Exception as e:
         return jsonify({"success": False, "message": "Gagal mendapatkan jawaban", "error": str(e)}), 500
 
-@app.route("/questionsbatch", methods=["POST"])
+@app.route("/questions-batch", methods=["POST"])
+@require_token(role="private")
 @validate_question_batch
 def create_questions_batch():
     data = g.question_batch_data
@@ -282,7 +292,8 @@ def create_questions_batch():
         }), 500
 
 # Endpoint: /articles
-@app.route("/articlesbatch", methods=["POST"])
+@app.route("/articles-batch", methods=["POST"])
+@require_token(role="private")
 @validate_article_batch
 def create_articles_batch_v():
     data = g.article_batch_data
@@ -306,22 +317,26 @@ def create_articles_batch_v():
         }), 500
 
 @app.route("/log", methods=["GET"])
+@require_token(role="private")
 def getLog():
     data = l_service.get_Log()
     return jsonify(data)
 
-@app.route("/getArticle", methods=['GET'])
+@app.route("/get-article", methods=['GET'])
+@require_token(role="private")
 def getArticleId():
     data = a_service.getArticle_Id()
     return jsonify(data)
 
-@app.route("/listenHook", methods=['POST'])
+@app.route("/listen-hook", methods=['POST'])
+@require_token(role="private")
 def listener():
     payload = request.data.decode("utf-8")
     save = h.setListenerHook(payload)
     return "ok", 200
 
-@app.route("/deleteArticle", methods=['POST'])
+@app.route("/delete-article", methods=['POST'])
+@require_token(role="private")
 def clearArticle():
     articleId = request.get_json();
     if articleId is None:

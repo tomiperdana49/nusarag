@@ -1,4 +1,4 @@
-import os
+import os, json
 
 from dotenv import load_dotenv
 from flask import jsonify
@@ -36,7 +36,7 @@ def match_question(question:str, organization_id: int):
     q_vector = convert(question)
 
     if q_vector is None:
-        return[{"article_content": "Tidak dapat melakukan konversi vektor"}]
+        return[{"article_content": "Tidak dapat melakukan konversi vektor"}],[]
     try:
         query = """
                     SELECT
@@ -53,42 +53,62 @@ def match_question(question:str, organization_id: int):
                     JOIN
                         articles a ON qa.article_id = a.id
                     WHERE
-                        (1 - (q.question_vector <=> %s::vector)) >= 0.7 AND q.organization_id = %s
+                        q.organization_id = %s
                 """
-        cur.execute(query, (q_vector, q_vector, organization_id,))
-        results = cur.fetchall()
+        cur.execute(query, (q_vector, organization_id,))
+        getData = cur.fetchall()
+        results = []
+        filltered = []
+
+        for row in getData:
+            sim = row["cosine_similarity"]
+            if sim >= 0.7:
+                results.append(row)
+            else:
+                filltered.append({
+                    "question": row["question"],        # bukan row[1]
+                    "article_title": row["article_title"],  # bukan row[3]
+                    "cosine_similarity": sim
+                })
+
+        filltered_str = "\n\n".join(
+            f"{item['question']}\n{item['article_title']}\n{item['cosine_similarity']:.2f}"
+            for item in filltered
+        )
+
         grouped = {}
         for row in results:
-            qid = row[0]
+            qid = row["question_id"]  # pastikan nama kolom sesuai query SELECT
             if qid not in grouped:
                 grouped[qid] = {
-                    "id_question": row[0],
-                    "question": row[1],
-                    "similarity": row[2],
+                    "id_question": row["question_id"],
+                    "question": row["question"],
+                    "similarity": row["cosine_similarity"],
                     "articles": []
                 }
             
             grouped[qid]["articles"].append({
-                "id": row[3],
-                "title": row[4],
-                "content": row[5]
+                "id": row["article_id"],
+                "title": row["article_title"],
+                "content": row["article_content"]
             })
+
         
         if not grouped:
             return [{
                 "question": question,
                 "article_content": f"""Mohon maaf pertanyaan anda mengenai {question} belum dapat saya jawab. Silahkan hubungi nusa.net.id. Gunakan Bahasa Indonesia atau Inggris sesuai dengan pertanyaan user {question}""",
                 "similarity": "0",
-            }]
+            }], filltered_str
         
         all_q_list = [data["question"] for data in grouped.values()]
         combined = "\n".join(all_q_list)
         for data in grouped.values():
             data["question"] = combined
-        return list(grouped.values())
+        return list(grouped.values()), filltered_str
     
     except Exception as e:
-        return [{"article_content": "Gagal query database: "+ str(e)}]
+        return [{"article_content": "Gagal query database: "+ str(e)}], []
     finally:
         cur.close()
         conn.close()
@@ -132,6 +152,8 @@ def find_history(session_id, organization_id):
     return data 
 
 # Menyimpan seluruh informasi percakapan
+import traceback
+
 def save_log(data):
     conn = get_connection()
     cur = conn.cursor()
@@ -148,9 +170,10 @@ def save_log(data):
             response,
             session_id,
             summary,
-            sum_vector
+            sum_vector,
+            ref
         ) VALUES (
-            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
         )
         RETURNING id
     """
@@ -167,20 +190,24 @@ def save_log(data):
             data['response'],
             data['session_id'],
             data['summary'],
-            data['vector']
+            data['vector'],
+            data['ref']
         ))
-
-        log_id = cur.fetchone()[0]
+        row = cur.fetchone()
+        log_id = row[0] if isinstance(row, tuple) else row["id"]
         conn.commit()
         return {"success": True, "log_id": log_id}
 
     except Exception as e:
         conn.rollback()
+        print("❌ Error saat insert log:")
+        traceback.print_exc()  # <<=== ini akan tampilkan error lengkap
         return {"success": False, "error": str(e)}
 
     finally:
         cur.close()
         conn.close()
+
 
 
 # Menyimpan history
@@ -232,7 +259,7 @@ def ask(question: str, session_id: str, organization_id: int):
         )
         res_t = llm.invoke(reformat_q)
 
-        q_data = match_question(res_t.content, organization_id)
+        q_data, refrece = match_question(res_t.content, organization_id)
 
         if not q_data or "articles" not in q_data[0]:
             reformat_notfoundh = prompt_notfoundh.format(
@@ -255,7 +282,8 @@ def ask(question: str, session_id: str, organization_id: int):
                 "response": res_nf.content,
                 "session_id": session_id,
                 "summary": res_sum.content,
-                "vector": convert(res_sum.content)
+                "vector": convert(res_sum.content),
+                "ref": refrece
             }
 
             save_history_dt = {
@@ -311,7 +339,8 @@ def ask(question: str, session_id: str, organization_id: int):
                 "response": res_ans_h.content,
                 "session_id": session_id,
                 "summary": res_sum.content,
-                "vector": convert(res_sum.content)
+                "vector": convert(res_sum.content),
+                "ref": refrece
             }
 
         save_history_dt = {
@@ -331,7 +360,7 @@ def ask(question: str, session_id: str, organization_id: int):
             question = question
         )
         res_tranlate = llm.invoke(reformat_q)
-        q_data = match_question(res_tranlate.content, organization_id)
+        q_data, refrece = match_question(res_tranlate.content, organization_id)
         if not q_data or "articles" not in q_data[0]:
             
             reformat_notfound = prompt_notfound.format(
@@ -353,7 +382,8 @@ def ask(question: str, session_id: str, organization_id: int):
                 "response": res_nf.content,
                 "session_id": session_id,
                 "summary": "Not Have Summary",
-                "vector": convert(question)
+                "vector": convert(question),
+                "ref": refrece
             }
 
             save_history_dt = {
@@ -405,7 +435,8 @@ def ask(question: str, session_id: str, organization_id: int):
                 "response": res_ans.content,
                 "session_id": session_id,
                 "summary": "Percakapan awal",
-                "vector": convert(question)
+                "vector": convert(question),
+                "ref": refrece
             }
 
         save_history_dt = {
