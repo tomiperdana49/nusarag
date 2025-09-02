@@ -1,6 +1,7 @@
 from connection.connection import get_connection
 from model.model import convert, ask
 
+
 class ArticleService:
     # Menginput artikel ke database
     def create_article(self, article):
@@ -323,7 +324,7 @@ class QuestionService:
             LEFT JOIN articles a ON a.id = qa.article_id
             ORDER BY q.id;
         """
-        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur = conn.cursor()
         cur.execute(query)
         rows = cur.fetchall()
 
@@ -378,7 +379,7 @@ class QuestionService:
             LEFT JOIN articles a ON a.id = qa.article_id
             WHERE q.id = %s;
         """
-        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur = conn.cursor()
         cur.execute(query, (questions_id,))
         rows = cur.fetchall()
 
