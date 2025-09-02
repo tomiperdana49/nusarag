@@ -54,6 +54,7 @@ def match_question(question:str, organization_id: int):
                         articles a ON qa.article_id = a.id
                     WHERE
                         q.organization_id = %s
+                    ORDER BY cosine_similarity DESC 
                     LIMIT 20;
                 """
         cur.execute(query, (q_vector, organization_id,))
