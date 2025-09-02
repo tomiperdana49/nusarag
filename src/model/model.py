@@ -251,15 +251,12 @@ def ask(question: str, session_id: str, organization_id: int):
     print(history)
     if history:
         try:
-            # --- Summary dulu
             reformat_sum = prompt_sum.format(
                 history=history,
                 question=question
             )
             res_sum = llm.invoke(reformat_sum)
             summary_text = getattr(res_sum, "content", "") or "Summary kosong"
-
-            # --- Translate history
             reformat_q = prompt_translate_h.format(
                 history=summary_text
             )
@@ -267,8 +264,6 @@ def ask(question: str, session_id: str, organization_id: int):
             translate_text = getattr(res_t, "content", "") or question
 
             q_data, refrece = match_question(translate_text, organization_id)
-
-            # --- Kalau tidak ketemu artikel
             if not q_data or not isinstance(q_data, list) or not q_data[0].get("articles"):
                 reformat_notfoundh = prompt_notfoundh.format(
                     question=question,
@@ -306,7 +301,6 @@ def ask(question: str, session_id: str, organization_id: int):
                 save_log(save_log_dt)
                 return response_text, summary_text, "Not found article", history, reformat_notfoundh
 
-            # --- Kalau ada artikel
             join_article = set()
             part_context = []
             for entry in q_data:
