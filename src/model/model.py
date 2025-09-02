@@ -142,8 +142,8 @@ def find_history(session_id, organization_id):
     data = []
     for row in result:
         data.append({
-            "question": row[0],
-            "response": row[1]
+            "question": row["question"],
+            "response": row["response"]
         })
 
     cur.close()
@@ -194,7 +194,7 @@ def save_log(data):
             data['ref']
         ))
         row = cur.fetchone()
-        log_id = row[0] if isinstance(row, tuple) else row["id"]
+        log_id = row["id"] if isinstance(row, tuple) else row["id"]
         conn.commit()
         return {"success": True, "log_id": log_id}
 
@@ -243,46 +243,107 @@ def save_history(data):
 # Mengajukan pertanyaan
 def ask(question: str, session_id: str, organization_id: int):
     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3)
+    print("Hellow")
 
     history = find_history(session_id, organization_id)
-
+    print(history)
     if history:
-        reformat_sum = prompt_sum.format(
-            history = history,
-            question = question
-        )
-
-        res_sum = llm.invoke(reformat_sum)
-
-        reformat_q = prompt_translate_h.format(
-            history = res_sum.content
-        )
-        res_t = llm.invoke(reformat_q)
-
-        q_data, refrece = match_question(res_t.content, organization_id)
-
-        if not q_data or "articles" not in q_data[0]:
-            reformat_notfoundh = prompt_notfoundh.format(
-                question = question,
-                history = history,
-                month = curr_month,
-                year = curr_year
+        try:
+            # --- Summary dulu
+            reformat_sum = prompt_sum.format(
+                history=history,
+                question=question
             )
+            res_sum = llm.invoke(reformat_sum)
+            summary_text = getattr(res_sum, "content", "") or "Summary kosong"
 
-            res_nf = llm.invoke(reformat_notfoundh)
+            # --- Translate history
+            reformat_q = prompt_translate_h.format(
+                history=summary_text
+            )
+            res_t = llm.invoke(reformat_q)
+            translate_text = getattr(res_t, "content", "") or question
+
+            q_data, refrece = match_question(translate_text, organization_id)
+
+            # --- Kalau tidak ketemu artikel
+            if not q_data or not isinstance(q_data, list) or not q_data[0].get("articles"):
+                reformat_notfoundh = prompt_notfoundh.format(
+                    question=question,
+                    history=history,
+                    month=curr_month,
+                    year=curr_year
+                )
+                res_nf = llm.invoke(reformat_notfoundh)
+                response_text = getattr(res_nf, "content", "") or "Tidak ditemukan jawaban"
+
+                save_log_dt = {
+                    "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "organization_id": organization_id,
+                    "question": question,
+                    "similar_question": "Not Found",
+                    "similarity": "0",
+                    "context": "Not Found",
+                    "system_instruction": reformat_notfoundh,
+                    "response": response_text,
+                    "session_id": session_id,
+                    "summary": summary_text,
+                    "vector": convert(summary_text) if summary_text else None,
+                    "ref": refrece
+                }
+
+                save_history_dt = {
+                    "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "session_id": session_id,
+                    "organization_id": organization_id,
+                    "question": question,
+                    "response": response_text
+                }
+
+                save_history(save_history_dt)
+                save_log(save_log_dt)
+                return response_text, summary_text, "Not found article", history, reformat_notfoundh
+
+            # --- Kalau ada artikel
+            join_article = set()
+            part_context = []
+            for entry in q_data:
+                articles = entry.get("articles", [])
+                if not isinstance(articles, list):
+                    continue
+                for article in articles:
+                    if not article or "id" not in article:
+                        continue
+                    if article["id"] not in join_article:
+                        join_article.add(article["id"])
+                        part_context.append(
+                            f"Judul: {article.get('title', 'Tanpa Judul')}\n{article.get('content', '')}"
+                        )
+
+            context = "\n".join(part_context) if part_context else "Tidak ada artikel valid"
+
+            reformat_ans_h = prompt_answrh.format(
+                question=question,
+                articles=context,
+                month=curr_month,
+                year=curr_year,
+                history=history
+            )
+            res_ans_h = llm.invoke(reformat_ans_h)
+            response_text = getattr(res_ans_h, "content", "") or "Jawaban kosong"
 
             save_log_dt = {
                 "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 "organization_id": organization_id,
                 "question": question,
-                "similar_question": "Not Found",
-                "similarity": "0",
-                "context": "Not Found",
-                "system_instruction": reformat_notfoundh,
-                "response": res_nf.content,
+                "similar_question": q_data[0].get("question", "Unknown"),
+                "similarity": q_data[0].get("similarity", "0"),
+                "context": context,
+                "system_instruction": reformat_ans_h,
+                "response": response_text,
                 "session_id": session_id,
-                "summary": res_sum.content,
-                "vector": convert(res_sum.content),
+                "summary": summary_text,
+                "vector": convert(summary_text) if summary_text else None,
                 "ref": refrece
             }
 
@@ -291,70 +352,20 @@ def ask(question: str, session_id: str, organization_id: int):
                 "session_id": session_id,
                 "organization_id": organization_id,
                 "question": question,
-                "response": res_nf.content
+                "response": response_text
             }
-
             save_history(save_history_dt)
             save_log(save_log_dt)
-
-            data = {
-                "session_id": session_id,
-                "organization_id": organization_id,
-                "question" : question,
-                "history"   : res_sum.content
-            }
-
-            #send_mail_issu(data)
-
-            return res_nf.content, res_sum.content, "Not found article", history, reformat_notfoundh
-
-        join_article = set()
-        part_context = []
-
-        for entry in q_data:
-            for article in entry["articles"]:
-                if article["id"] not in join_article:
-                    join_article.add(article["id"])
-                    part_context.append(f"Judul: {article['title']}\n{article['content']}")
-
-        context = "\n".join(part_context)
-
-        reformat_ans_h = prompt_answrh.format(
-            question = question,
-            articles = context,
-            month = curr_month,
-            year = curr_year,
-            history = history
-        )
-
-        res_ans_h = llm.invoke(reformat_ans_h)
-        save_log_dt = {
-                "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "organization_id": organization_id,
-                "question": question,
-                "similar_question": q_data[0]["question"],
-                "similarity": q_data[0]["similarity"],
-                "context": context,
-                "system_instruction": reformat_ans_h,
-                "response": res_ans_h.content,
-                "session_id": session_id,
-                "summary": res_sum.content,
-                "vector": convert(res_sum.content),
-                "ref": refrece
-            }
-
-        save_history_dt = {
-                "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "session_id": session_id,
-                "organization_id": organization_id,
-                "question": question,
-                "response": res_ans_h.content
-            }
-
-        save_history(save_history_dt)
-        save_log(save_log_dt)
-
-        return res_ans_h.content, res_sum.content, "Article Found"
+            return response_text, summary_text, "Article Found"
+        except Exception as e:
+            import traceback
+            err_msg = f"Internal error: {e}"
+            print(err_msg)
+            print(traceback.format_exc())
+            return {
+                "error": "1",
+                "message": err_msg,
+                "success": False}
     else:
         reformat_q = prompt_translate.format(
             question = question
@@ -396,14 +407,6 @@ def ask(question: str, session_id: str, organization_id: int):
 
             save_history(save_history_dt)
             save_log(save_log_dt)
-            data = {
-                "session_id": session_id,
-                "organization_id": organization_id,
-                "question" : question,
-                "history" : "Tidak ada history"
-            }
-
-            #send_mail_issu(data)
             return res_nf.content, "Article Not Found"
      
         join_article = set()

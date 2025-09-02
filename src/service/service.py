@@ -36,12 +36,11 @@ class ArticleService:
 
         cur.execute(query, values)
         result = cur.fetchone()
-        column_names = [desc[0] for desc in cur.description]
         conn.commit()
         cur.close()
         conn.close()
 
-        return dict(zip(column_names, result))
+        return result
     
     def create_article_batch(self, pairs: list[dict]):
         conn = get_connection()
@@ -101,11 +100,10 @@ class ArticleService:
 
         cur.execute(query)
         rows = cur.fetchall()
-        column_names = [desc[0] for desc in cur.description]
         cur.close()
         conn.close()
 
-        return[dict(zip(column_names, row)) for row in rows]
+        return rows
 
     # Mengakses artikel berdasarkan id pada database
     def get_article_by_id(self, article_id):
@@ -121,11 +119,10 @@ class ArticleService:
 
         cur.execute(query, (article_id))
         row = cur.fetchone()
-        column_names = [desc[0] for desc in cur.description]
         cur.close()
         conn.close()
 
-        return dict(zip(column_names, row)) if row else None
+        return row if row else None
     
     def getArticle_Id(self):
         conn = get_connection()
@@ -133,12 +130,10 @@ class ArticleService:
 
         cur.execute("SELECT id, title, content FROM articles ORDER BY ID ASC;")
         rows = cur.fetchall()
-        columns = [desc[0] for desc in cur.description]
         cur.close()
         conn.close()
 
-        result = [dict(zip(columns, row)) for row in rows]
-        return result
+        return rows
 
     def deleteArticle(self, articelId):
         conn = get_connection();
@@ -328,32 +323,31 @@ class QuestionService:
             LEFT JOIN articles a ON a.id = qa.article_id
             ORDER BY q.id;
         """
+        cur = conn.cursor(cursor_factory=RealDictCursor)
         cur.execute(query)
         rows = cur.fetchall()
-        column_names = [desc[0] for desc in cur.description]
 
         result = {}
         for row in rows:
-            row_dict = dict(zip(column_names, row))
-            qid = row_dict["question_id"]
+            qid = row["question_id"]
             if qid not in result:
                 result[qid] = {
                     "id": qid,
-                    "question": row_dict["question"],
-                    "status": row_dict["status"],
-                    "created_by": row_dict["created_by"],
-                    "updated_by": row_dict["updated_by"],
-                    "created_at": row_dict["created_at"],
-                    "updated_at": row_dict["updated_at"],
-                    "organization_id": row_dict["organization_id"],
-                    "organization_name": row_dict["organization_name"],
+                    "question": row["question"],
+                    "status": row["status"],
+                    "created_by": row["created_by"],
+                    "updated_by": row["updated_by"],
+                    "created_at": row["created_at"],
+                    "updated_at": row["updated_at"],
+                    "organization_id": row["organization_id"],
+                    "organization_name": row["organization_name"],
                     "articles": []
                 }
-            if row_dict["article_id"]:
+            if row["article_id"]:
                 result[qid]["articles"].append({
-                    "article_id": row_dict["article_id"],
-                    "title": row_dict["article_title"],
-                    "content": row_dict["article_content"]
+                    "article_id": row["article_id"],
+                    "title": row["article_title"],
+                    "content": row["article_content"]
                 })
 
         cur.close()
@@ -384,37 +378,39 @@ class QuestionService:
             LEFT JOIN articles a ON a.id = qa.article_id
             WHERE q.id = %s;
         """
+        cur = conn.cursor(cursor_factory=RealDictCursor)
         cur.execute(query, (questions_id,))
         rows = cur.fetchall()
-        column_names = [desc[0] for desc in cur.description]
 
         if not rows:
+            cur.close()
+            conn.close()
             return None
 
+        # karena rows sudah dict, bisa pakai key langsung
         result = {
-            "id": rows[0][0],
-            "question": rows[0][1],
-            "status": rows[0][2],
-            "created_by": rows[0][3],
-            "updated_by": rows[0][4],
-            "created_at": rows[0][5],
-            "updated_at": rows[0][6],
-            "organization_id": rows[0][7],
-            "organization_name": rows[0][8],
+            "id": rows[0]["question_id"],
+            "question": rows[0]["question"],
+            "status": rows[0]["status"],
+            "created_by": rows[0]["created_by"],
+            "updated_by": rows[0]["updated_by"],
+            "created_at": rows[0]["created_at"],
+            "updated_at": rows[0]["updated_at"],
+            "organization_id": rows[0]["organization_id"],
+            "organization_name": rows[0]["organization_name"],
             "articles": []
         }
 
         for row in rows:
-            if row[9]:
+            if row["article_id"]:
                 result["articles"].append({
-                    "article_id": row[9],
-                    "title": row[10],
-                    "content": row[11]
+                    "article_id": row["article_id"],
+                    "title": row["article_title"],
+                    "content": row["article_content"]
                 })
 
         cur.close()
         conn.close()
-
         return result
 
 class OrganizationService:
@@ -428,11 +424,10 @@ class OrganizationService:
         
         cur.execute(query)
         rows = cur.fetchall()
-        column_names = [desc[0] for desc in cur.description]
         cur.close()
         conn.close()
 
-        return[dict(zip(column_names, row)) for row in rows]
+        return rows
     
     def get_organizations_by_id(self, id):
         conn = get_connection()
@@ -445,11 +440,10 @@ class OrganizationService:
         
         cur.execute(query, (id))
         row = cur.fetchone()
-        column_names = [desc[0] for desc in cur.description]
         cur.close()
         conn.close()
 
-        return dict(zip(column_names, row)) if row else None
+        return row if row else None
     
     def create_organizations(self, organizations):
         conn = get_connection()
@@ -461,12 +455,11 @@ class OrganizationService:
         """
         cur.execute(query, (organizations.get("name"),))  # <-- perbaikan di sini
         result = cur.fetchone()
-        column_names = [desc[0] for desc in cur.description]
         conn.commit()
         cur.close()
         conn.close()
 
-        return dict(zip(column_names, result))
+        return result
 
     
 class AskService:
@@ -502,13 +495,9 @@ class LogService:
                     """)
 
         rows = cur.fetchall()
-        columns = [desc[0] for desc in cur.description]  # Ambil nama kolom
         cur.close()
         conn.close()
-
-        # Ubah setiap row menjadi dictionary
-        result = [dict(zip(columns, row)) for row in rows]
-        return result
+        return rows
 
 class webHook:
     def setListenerHook(self, payload):
@@ -517,6 +506,6 @@ class webHook:
             with conn.cursor() as cur:
                 cur.execute("INSERT INTO hook_data (datas) VALUES (%s)", (payload,))
             conn.commit()
-            print("✅ Payload berhasil disimpan")
+            print("Payload berhasil disimpan")
         except Exception as e:
-            print("❌ Error:", e)
+            print("Error:", e)

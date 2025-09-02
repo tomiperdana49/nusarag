@@ -122,7 +122,7 @@ def main():
 def testing():
     body = request.get_json();
     return jsonify({
-        "payload": body.get("payload", {}),
+        "data": body,
         "timestamp": __import__('datetime').datetime.utcnow().isoformat(),
         "service": "Seluruh aktivitas dikelola oleh Flask"
     })
