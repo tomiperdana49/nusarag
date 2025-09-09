@@ -1,1 +1,4 @@
 .env
+path
+src/helper/code.gs
+requirements.txt

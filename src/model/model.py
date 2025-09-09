@@ -471,12 +471,13 @@ prompt_sum = PromptTemplate.from_template(
         - Hindari menyalin mentah pertanyaan terakhir, tapi perjelas maksudnya tanpa mengubah makna.
         - Gunakan bahasa Indonesia atau Inggris (sesuai dengan bahasa pertanyaan terakhir user).
         - Jika ada pertanyaan campuran, gunakan bahasa yang paling dominan.
+        - Ingat yang kamu ringkas hanya pertanyaan (question) tidak ikut context nya!
 
         Riwayat percakapan sebelumnya:
         {history}
         Pertanyaan terakhir:
         {question}
-        Hasil (1 pertanyaan tunggal) dalam bahasa yang sesuai dengan pertanyaan terakhir:
+        Hasil (1 pertanyaan tunggal) dalam bahasa yang sesuai dengan pertanyaan terakhir tanpa ikut meringkas context pada Riwayat:
     """
 )
 

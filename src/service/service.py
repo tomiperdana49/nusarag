@@ -494,6 +494,7 @@ class LogService:
                         FROM log l
                         LEFT JOIN organizations o
                             ON l.organization_id = o.id;
+                        ORDER BY l.time DESC
                     """)
 
         rows = cur.fetchall()
