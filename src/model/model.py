@@ -36,7 +36,7 @@ def match_question(question:str, organization_id: int):
     q_vector = convert(question)
 
     if q_vector is None:
-        return[{"article_content": "Tidak dapat melakukan konversi vektor"}],[]
+        return[{"article_content": "Tidak dapat melakukan konversi vektor"}]
     try:
         query = """
                     SELECT
@@ -55,62 +55,55 @@ def match_question(question:str, organization_id: int):
                     WHERE
                         q.organization_id = %s
                     ORDER BY cosine_similarity DESC 
-                    LIMIT 20;
+                    LIMIT 1;
                 """
         cur.execute(query, (q_vector, organization_id,))
-        getData = cur.fetchall()
-        results = []
-        filltered = []
-
-        for row in getData:
-            sim = row["cosine_similarity"]
-            if sim >= 0.7:
-                results.append(row)
-            else:
-                filltered.append({
-                    "question": row["question"],        # bukan row[1]
-                    "article_title": row["article_title"],  # bukan row[3]
-                    "cosine_similarity": sim
-                })
-
-        filltered_str = "\n\n".join(
-            f"{item['question']}\n{item['article_title']}\n{item['cosine_similarity']:.2f}"
-            for item in filltered
-        )
+        results = cur.fetchall()
 
         grouped = {}
         for row in results:
-            qid = row["question_id"]  # pastikan nama kolom sesuai query SELECT
+            qid = row["question_id"]
             if qid not in grouped:
                 grouped[qid] = {
                     "id_question": row["question_id"],
                     "question": row["question"],
-                    "similarity": row["cosine_similarity"],
+                    "similarity": row["cosine_similarity"],  # angka asli dari query
                     "articles": []
                 }
-            
+
             grouped[qid]["articles"].append({
                 "id": row["article_id"],
                 "title": row["article_title"],
                 "content": row["article_content"]
             })
 
-        
-        if not grouped:
-            return [{
-                "question": question,
-                "article_content": f"""Mohon maaf pertanyaan anda mengenai {question} belum dapat saya jawab. Silahkan hubungi nusa.net.id. Gunakan Bahasa Indonesia atau Inggris sesuai dengan pertanyaan user {question}""",
-                "similarity": "0",
-            }], filltered_str
-        
-        all_q_list = [data["question"] for data in grouped.values()]
-        combined = "\n".join(all_q_list)
-        for data in grouped.values():
-            data["question"] = combined
-        return list(grouped.values()), filltered_str
-    
+        # karena LIMIT 1, pasti hanya ada 1 item
+        if grouped:
+            item = next(iter(grouped.values()))
+            if item["similarity"] < 0.70:  # threshold 0.7 (karena hasil query range 0-1)
+                return [{
+                    "question": question,
+                    "similar_question": item['question'],
+                    "article_content": (
+                        f"Mohon maaf pertanyaan anda mengenai {question} belum dapat saya jawab. "
+                        f"Silahkan hubungi nusa.net.id. Gunakan Bahasa Indonesia atau Inggris sesuai dengan pertanyaan user {question}"
+                    ),
+                    "similarity": item["similarity"],  # tampilkan angka similarity asli
+                }]
+            return [item]
+
+        # fallback kalau query tidak mengembalikan baris
+        return [{
+            "question": question,
+            "article_content": (
+                f"Mohon maaf pertanyaan anda mengenai {question} belum dapat saya jawab. "
+                f"Silahkan hubungi nusa.net.id. Gunakan Bahasa Indonesia atau Inggris sesuai dengan pertanyaan user {question}"
+            ),
+            "similarity": 0,
+        }]
+
     except Exception as e:
-        return [{"article_content": "Gagal query database: "+ str(e)}], []
+        return [{"article_content": "Gagal query database: " + str(e)}], []
     finally:
         cur.close()
         conn.close()
@@ -172,10 +165,9 @@ def save_log(data):
             response,
             session_id,
             summary,
-            sum_vector,
-            ref
+            sum_vector
         ) VALUES (
-            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
         )
         RETURNING id
     """
@@ -192,8 +184,7 @@ def save_log(data):
             data['response'],
             data['session_id'],
             data['summary'],
-            data['vector'],
-            data['ref']
+            data['vector']
         ))
         row = cur.fetchone()
         log_id = row["id"] if isinstance(row, tuple) else row["id"]
@@ -263,7 +254,7 @@ def ask(question: str, session_id: str, organization_id: int):
             res_t = llm.invoke(reformat_q)
             translate_text = getattr(res_t, "content", "") or question
 
-            q_data, refrece = match_question(translate_text, organization_id)
+            q_data = match_question(translate_text, organization_id)
             if not q_data or not isinstance(q_data, list) or not q_data[0].get("articles"):
                 reformat_notfoundh = prompt_notfoundh.format(
                     question=question,
@@ -278,15 +269,14 @@ def ask(question: str, session_id: str, organization_id: int):
                     "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                     "organization_id": organization_id,
                     "question": question,
-                    "similar_question": "Not Found",
-                    "similarity": "0",
+                    "similar_question": q_data[0].get("similar_question"),
+                    "similarity": q_data[0].get("similarity"),
                     "context": "Not Found",
                     "system_instruction": reformat_notfoundh,
                     "response": response_text,
                     "session_id": session_id,
                     "summary": summary_text,
                     "vector": convert(summary_text) if summary_text else None,
-                    "ref": refrece
                 }
 
                 save_history_dt = {
@@ -340,7 +330,6 @@ def ask(question: str, session_id: str, organization_id: int):
                 "session_id": session_id,
                 "summary": summary_text,
                 "vector": convert(summary_text) if summary_text else None,
-                "ref": refrece
             }
 
             save_history_dt = {
@@ -367,7 +356,7 @@ def ask(question: str, session_id: str, organization_id: int):
             question = question
         )
         res_tranlate = llm.invoke(reformat_q)
-        q_data, refrece = match_question(res_tranlate.content, organization_id)
+        q_data= match_question(res_tranlate.content, organization_id)
         if not q_data or "articles" not in q_data[0]:
             
             reformat_notfound = prompt_notfound.format(
@@ -382,15 +371,14 @@ def ask(question: str, session_id: str, organization_id: int):
                 "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 "organization_id": organization_id,
                 "question": question,
-                "similar_question": "Not Found",
-                "similarity": "0",
+                "similar_question": q_data[0].get("similar_question"),
+                "similarity": q_data[0].get("similarity"),
                 "context": "Not Found",
                 "system_instruction": reformat_notfound,
                 "response": res_nf.content,
                 "session_id": session_id,
                 "summary": "Not Have Summary",
                 "vector": convert(question),
-                "ref": refrece
             }
 
             save_history_dt = {
@@ -435,7 +423,6 @@ def ask(question: str, session_id: str, organization_id: int):
                 "session_id": session_id,
                 "summary": "Percakapan awal",
                 "vector": convert(question),
-                "ref": refrece
             }
 
         save_history_dt = {

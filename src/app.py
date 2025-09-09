@@ -3,6 +3,7 @@ from flask_cors import CORS
 from service.service import ArticleService, QuestionService, OrganizationService, AskService, LogService, webHook
 from validation.validation import validate_article, validate_question, validate_organizations, validate_question_article_batch, validate_article_batch, validate_question_batch
 from validation.authentication import tokenService,require_token
+from werkzeug.exceptions import BadRequest
 import os, jwt
 import requests
 from dotenv import load_dotenv
@@ -40,7 +41,7 @@ def get_token():
 #=============================#
 @app.route("/request-access-nusa", methods=["POST"])
 def get_access():
-    body = request.get_json();
+    body = request.get_json(silent=True);
     if body is None:
         return jsonify({"error": "Data is none"}), 404
     check = t_service.checkUsers(body)
@@ -78,7 +79,7 @@ def get_access():
 
 @app.route("/request-access-users", methods=["POST"])
 def get_access_user():
-    body = request.get_json();
+    body = request.get_json(silent=True);
     if body is None:
         return jsonify({"error": "Data is none"}), 404
     resp = requests.post(
@@ -114,7 +115,7 @@ def get_access_user():
 def main():
     return jsonify({
         "status": "OK",
-        "timestamp": __import__('datetime').datetime.utcnow().isoformat(),
+        "timestamp": __import__('datetime').datetime.now(__import__('datetime').timezone.utc).isoformat(),
         "service": "Seluruh aktivitas dikelola oleh Flask"
     })
 @app.route("/test", methods=["POST"])
@@ -123,7 +124,7 @@ def testing():
     body = request.get_json();
     return jsonify({
         "data": body,
-        "timestamp": __import__('datetime').datetime.utcnow().isoformat(),
+        "timestamp": __import__('datetime').datetime.now(__import__('datetime').timezone.utc).isoformat(),
         "service": "Seluruh aktivitas dikelola oleh Flask"
     })
 
@@ -133,7 +134,7 @@ def testing_public():
     body = request.get_json();
     return jsonify({
         "payload": body.get("payload", {}),
-        "timestamp": __import__('datetime').datetime.utcnow().isoformat(),
+       "timestamp": __import__('datetime').datetime.now(__import__('datetime').timezone.utc).isoformat(),
         "service": "Seluruh aktivitas dikelola oleh Flask"
     })
 
@@ -258,14 +259,25 @@ def create_organizations():
         return jsonify({"success": False, "message": "Gagal menambahkan organisasi", "error": str(e)}), 500
 
 
-@app.route("/ask", methods={"POST"})
+@app.route("/ask", methods=["POST"])
 def ask():
     try:
         body = request.get_json()
-        asking = ak_service.asking(body) 
+    except BadRequest:
+        return jsonify({
+            "success": False,
+            "message": "Invalid JSON format"
+        }), 400
+
+    try:
+        asking = ak_service.asking(body)
         return jsonify({"success": True, "data": asking})
     except Exception as e:
-        return jsonify({"success": False, "message": "Gagal mendapatkan jawaban", "error": str(e)}), 500
+        return jsonify({
+            "success": False,
+            "message": "Gagal mendapatkan jawaban",
+            "error": str(e)
+        }), 500
 
 @app.route("/questions-batch", methods=["POST"])
 @require_token(role="private")
@@ -338,7 +350,7 @@ def listener():
 @app.route("/delete-article", methods=['POST'])
 @require_token(role="private")
 def clearArticle():
-    articleId = request.get_json();
+    articleId = request.get_json(silent=True);
     if articleId is None:
         return "Id is None", 404
     deleteArticel = a_service.deleteArticle(articleId);
