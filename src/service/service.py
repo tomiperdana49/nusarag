@@ -478,24 +478,24 @@ class LogService:
         cur = conn.cursor()
 
         cur.execute("""
-                        SELECT
-                            l.id,
-                            l.session_id,
-                            l.time,
-                            o.name AS organization_id,
-                            l.question,
-                            l.similar_question,
-                            l.similarity,
-                            l.context,
-                            l.system_instruction,
-                            l.response,
-                            l.summary,
-                            l.ref
-                        FROM log l
-                        LEFT JOIN organizations o
-                            ON l.organization_id = o.id;
-                        ORDER BY l.time DESC
-                    """)
+                    SELECT
+                        l.id,
+                        l.session_id,
+                        l.time,
+                        o.name AS organization_id,
+                        l.question,
+                        l.similar_question,
+                        l.similarity,
+                        l.context,
+                        l.system_instruction,
+                        l.response,
+                        l.summary,
+                        l.ref
+                    FROM log l
+                    LEFT JOIN organizations o
+                        ON l.organization_id = o.id
+                    ORDER BY l.time DESC
+                """)
 
         rows = cur.fetchall()
         cur.close()
