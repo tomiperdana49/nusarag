@@ -183,7 +183,7 @@ class QuestionService:
                 questions.get("status"),
             ))
 
-            question_id = cur.fetchone()[0]
+            question_id = cur.fetchone()["id"]
             conn.commit()
 
             return {
