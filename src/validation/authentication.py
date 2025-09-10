@@ -3,6 +3,10 @@ import base64, datetime, jwt
 from connection.connection import get_connection
 from functools import wraps
 
+from datetime import datetime, timedelta, timezone
+
+exp = datetime.now(timezone.utc) + timedelta(hours=1)
+
 class tokenService:
     def getToken(self, auth):
         try:
@@ -22,8 +26,6 @@ class tokenService:
 
         if not client:
             return jsonify({"error": "Invalid client credentials"}), 401
-        
-        exp = datetime.datetime.utcnow() + datetime.timedelta(hours=1)
         payload = {
             "client_id": client["client_id"],
             "roles": client["roles"],

@@ -3,7 +3,7 @@ from connection.connection import get_connection
 
 def validate_article(func):
     def wrapper(*args, **kwargs):
-        data = request.get_json()
+        data = request.get_json(silent=True)
 
         # Cek jika JSON tidak valid atau kosong
         if not data:
@@ -38,7 +38,7 @@ def validate_article(func):
 
 def validate_question(func):
     def wrapper(*args, **kwargs):
-        data = request.get_json()
+        data = request.get_json(silent=True)
         if not data:
             return jsonify({
                 "success": False,
@@ -74,7 +74,7 @@ def validate_question(func):
 
 def validate_question_article_batch(func):
     def wrapper(*args, **kwargs):
-        data = request.get_json()
+        data = request.get_json(silent=True)
 
         if not isinstance(data, list) or len(data) == 0:
             return jsonify({
@@ -113,7 +113,7 @@ def validate_question_article_batch(func):
 
 def validate_article_batch(func):
     def wrapper(*args, **kwargs):
-        data = request.get_json()
+        data = request.get_json(silent=True)
         if not isinstance(data, list) or len(data) == 0:
             return jsonify({
                 "success": False,
@@ -163,7 +163,7 @@ def validate_article_batch(func):
 
 def validate_question_batch(func):
     def wrapper(*args, **kwargs):
-        data = request.get_json()
+        data = request.get_json(silent=True)
         if not isinstance(data, list) or len(data) == 0:
             return jsonify({
                 "success": False,
@@ -212,7 +212,7 @@ def validate_question_batch(func):
 
 def validate_organizations(func):
     def wrapper(*args, **kwargs):
-        data = request.get_json()
+        data = request.get_json(silent=True)
         if not data:
             return jsonify({
                 "success": False,

@@ -2,3 +2,6 @@
 path
 src/helper/code.gs
 requirements.txt
+requirements-test.txt
+unuse/
+Makefile

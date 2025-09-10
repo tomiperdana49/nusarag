@@ -6,7 +6,6 @@ from datetime import datetime
 
 # Import from file
 from connection.connection import get_connection
-from service.email_sender import send_mail_issu
 
 # Import langchain
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
