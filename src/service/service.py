@@ -245,36 +245,43 @@ class QuestionService:
 
 
     def attach_articles_to_questions_batch(self, pairs: list[dict]):
-        conn = get_connection()
-        cur = conn.cursor()
+        conn = None
+        cur = None
+        
+        try:
+            conn = get_connection()
+            cur = conn.cursor()
 
-        checkQ = list({q["question_id"] for q in pairs})
-        checkA = list({a["article_id"] for a in pairs})
+            # Validasi IDs
+            checkQ = list({q["question_id"] for q in pairs})
+            checkA = list({a["article_id"] for a in pairs})
 
-        cur.execute("SELECT id FROM questions WHERE id = ANY(%s)", (checkQ,))
-        foundQ = {row[0] for row in cur.fetchall()}
+            cur.execute("SELECT id FROM questions WHERE id = ANY(%s)", (checkQ,))
+            foundQ = {row[0] for row in cur.fetchall()}
 
-        cur.execute("SELECT id FROM articles WHERE id = ANY(%s)", (checkA,))
-        foundA = {row[0] for row in cur.fetchall()}
+            cur.execute("SELECT id FROM articles WHERE id = ANY(%s)", (checkA,))
+            foundA = {row[0] for row in cur.fetchall()}
 
-        missingQ = set(checkQ) - foundQ
-        missingA = set(checkA) - foundA
+            missingQ = set(checkQ) - foundQ
+            missingA = set(checkA) - foundA
 
-        if missingQ or missingA:
-            return {
+            if missingQ or missingA:
+                return {
                     "success": False,
                     "message": "ID tidak valid.",
                     "missing_questions": list(missingQ),
                     "missing_articles": list(missingA),
-            }
+                }
             
-        cur.execute("DELETE FROM question_articles;")
-        conn.commit()
-        try:
+            # PERBAIKAN: Semua dalam satu transaction
+            # Hapus data lama
+            cur.execute("TRUNCATE TABLE question_articles RESTART IDENTITY;")
+            
+            # Insert data baru - TANPA RETURNING!
             for item in pairs:
                 question_id = item["question_id"]
                 article_id = item["article_id"]
-
+                
                 cur.execute(
                     """
                     INSERT INTO question_articles (question_id, article_id, created_at)
@@ -284,21 +291,25 @@ class QuestionService:
                         question_id = EXCLUDED.question_id,
                         article_id = EXCLUDED.article_id,
                         created_at = NOW()
-                    RETURNING *;
-                    """,
+                    """,  # ← HAPUS "RETURNING *;"
                     (question_id, article_id)
                 )
-
+            
+            # Commit sekali saja di akhir
             conn.commit()
-            return {"success": True} 
+            return {"success": True}
 
         except Exception as e:
-            conn.rollback()
-            raise e
+            if conn:
+                conn.rollback()
+            print(f"Error in attach_articles_to_questions_batch: {str(e)}")
+            raise e  # Re-raise untuk di-catch di Flask route
 
         finally:
-            cur.close()
-            conn.close()
+            if cur:
+                cur.close()
+            if conn:
+                conn.close()
 
     def get_all_question(self):
         conn = get_connection()
