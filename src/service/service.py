@@ -249,61 +249,64 @@ class QuestionService:
         cur = None
         
         try:
+            if not pairs:
+                return {
+                    "success": False,
+                    "message": "Tidak ada data untuk diproses."
+                }
+            validated_pairs = []
+            for i, item in enumerate(pairs):
+                try:
+                    question_id = int(item["question_id"])
+                    article_id = int(item["article_id"])
+                    validated_pairs.append((question_id, article_id))
+                except (ValueError, KeyError) as e:
+                    return {
+                        "success": False,
+                        "message": f"Data tidak valid pada item {i+1}: {str(e)}"
+                    }
+
             conn = get_connection()
             cur = conn.cursor()
 
-            # Validasi IDs
-            checkQ = list({q["question_id"] for q in pairs})
-            checkA = list({a["article_id"] for a in pairs})
+            question_ids = list({q for q, a in validated_pairs})
+            article_ids = list({a for q, a in validated_pairs})
 
-            cur.execute("SELECT id FROM questions WHERE id = ANY(%s)", (checkQ,))
-            foundQ = {row[0] for row in cur.fetchall()}
+            # FIX: Gunakan key name, bukan index
+            cur.execute("SELECT id FROM questions WHERE id = ANY(%s)", (question_ids,))
+            found_questions = {row['id'] for row in cur.fetchall()}  # ← PERBAIKAN!
 
-            cur.execute("SELECT id FROM articles WHERE id = ANY(%s)", (checkA,))
-            foundA = {row[0] for row in cur.fetchall()}
+            cur.execute("SELECT id FROM articles WHERE id = ANY(%s)", (article_ids,))
+            found_articles = {row['id'] for row in cur.fetchall()}  # ← PERBAIKAN!
 
-            missingQ = set(checkQ) - foundQ
-            missingA = set(checkA) - foundA
-
-            if missingQ or missingA:
+            missing_questions = set(question_ids) - found_questions
+            missing_articles = set(article_ids) - found_articles
+            if missing_questions or missing_articles:
                 return {
                     "success": False,
-                    "message": "ID tidak valid.",
-                    "missing_questions": list(missingQ),
-                    "missing_articles": list(missingA),
+                    "message": "ID tidak valid ditemukan.",
+                    "missing_questions": list(missing_questions),
+                    "missing_articles": list(missing_articles),
                 }
-            
-            # PERBAIKAN: Semua dalam satu transaction
-            # Hapus data lama
+
+            # Truncate dan insert
             cur.execute("TRUNCATE TABLE question_articles RESTART IDENTITY;")
             
-            # Insert data baru - TANPA RETURNING!
-            for item in pairs:
-                question_id = item["question_id"]
-                article_id = item["article_id"]
-                
-                cur.execute(
-                    """
-                    INSERT INTO question_articles (question_id, article_id, created_at)
-                    VALUES (%s, %s, NOW())
-                    ON CONFLICT (question_id, article_id)
-                    DO UPDATE SET
-                        question_id = EXCLUDED.question_id,
-                        article_id = EXCLUDED.article_id,
-                        created_at = NOW()
-                    """,  # ← HAPUS "RETURNING *;"
-                    (question_id, article_id)
-                )
-            
-            # Commit sekali saja di akhir
+            insert_query = """
+                INSERT INTO question_articles (question_id, article_id, created_at)
+                VALUES (%s, %s, NOW())
+            """
+
+            cur.executemany(insert_query, validated_pairs)
             conn.commit()
+
             return {"success": True}
 
         except Exception as e:
             if conn:
                 conn.rollback()
-            print(f"Error in attach_articles_to_questions_batch: {str(e)}")
-            raise e  # Re-raise untuk di-catch di Flask route
+            print(f"Error: {str(e)}")
+            raise e
 
         finally:
             if cur:
