@@ -5,8 +5,6 @@ from functools import wraps
 
 from datetime import datetime, timedelta, timezone
 
-exp = datetime.now(timezone.utc) + timedelta(hours=1)
-
 class tokenService:
     def getToken(self, auth):
         try:
@@ -29,7 +27,7 @@ class tokenService:
         payload = {
             "client_id": client["client_id"],
             "roles": client["roles"],
-            "exp": exp
+            "exp":  datetime.now(timezone.utc) + timedelta(hours=1)
         }
         return payload
 
