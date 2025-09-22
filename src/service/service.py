@@ -503,8 +503,7 @@ class LogService:
                         l.context,
                         l.system_instruction,
                         l.response,
-                        l.summary,
-                        l.ref
+                        l.summary
                     FROM log l
                     LEFT JOIN organizations o
                         ON l.organization_id = o.id
