@@ -1,5 +1,5 @@
 from connection.connection import get_connection
-from model.model import convert, ask
+from model.model import convert, ask, check_question
 
 
 class ArticleService:
@@ -484,7 +484,12 @@ class AskService:
         organization_id = request_data.get("organization_id")
         if not question_text and user_id:
             raise ValueError("Kunci 'question' tidak ditemukan dalam body request JSON.")
-        return ask(question_text, user_id, organization_id)
+
+        check = check_question(question_text)
+        if check == True or check == "True":
+            return ask(question_text, user_id, organization_id)
+        else:
+            return check
 
 class LogService:
      def get_Log(self):
