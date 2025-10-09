@@ -489,7 +489,7 @@ class AskService:
         if check == True or check == "True":
             return ask(question_text, user_id, organization_id)
         else:
-            return check
+            return check, "Not Respond with Database"
 
 class LogService:
      def get_Log(self):
