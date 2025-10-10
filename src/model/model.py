@@ -634,6 +634,8 @@ prompt_check = PromptTemplate.from_template(
        - Tentang sistem, aplikasi, atau produk buatan Nusanet.
        - Tentang **identitas kamu sendiri** (misalnya: “kamu siapa?”, “apakah kamu dari Nusanet?”, “kamu AI apa?”, “siapa yang bikin kamu?”)
          → Ini **tetap dianggap relevan**, karena kamu adalah bagian dari Nusanet.
+       - Tentang seputar karyawan, pelayanan nusanet terhadap karyawan, pengembangan karir dan lainnya yang berkaitan karyawan dan lowongan kerja ataupun yang berkaitan dengan HRD di Nusanet
+         → Apakah di perusahaan ini adal lowongan kerja?, Apakah Nusanet ada training?, Tes seleksinya? dan lainnya.
 
        Jika pertanyaan termasuk salah satu dari hal di atas → keluarkan **hanya teks berikut (tanpa tambahan apapun): True
 
