@@ -5,3 +5,9 @@ requirements.txt
 requirements-test.txt
 unuse/
 Makefile
+htmlcov/
+test/
+.coverage.MacBook-Air-Nusanet.local.17869.XNKYMudx
+.coverage.MacBook-Air-Nusanet.local.17874.XODXNmIx
+.coveragerc
+.coverage
