@@ -491,6 +491,7 @@ prompt_notfoundh = PromptTemplate.from_template(
         3. Jika ada informasi melalui history, silakan jawab sesuai konteks. Jika tidak ada konteks, jangan dijawab.
         4. Ingat juga saat ini bulan {month} dan tahun {year}. Jika ada pertanyaan terkait waktu, sesuaikan dengan bulan & tahun saat ini. 
            Jangan memberi informasi yang sudah berlalu.
+        5. Pastikan format jawaban yang kamu berikan bagus untuk tampilan chat di Whatsapp
 
         Adapun pertanyaan yang diajukan oleh user adalah:
         {question}
@@ -518,6 +519,7 @@ prompt_answrh = PromptTemplate.from_template(
         3. Informasi harus jelas dan informatif. Jika ada kontak yang bisa dihubungi, sertakan.
         4. Ingat tanggal, bulan, dan tahun saat ini: {month} {year}.
         5. Jika ada informasi terkait di history, sertakan.
+        6. Pastikan format jawaban yang kamu berikan bagus untuk tampilan chat di Whatsapp
 
         Berikut adalah pertanyaan user:
         {question}
@@ -545,6 +547,7 @@ prompt_notfound = PromptTemplate.from_template(
         2. Karena artikel tidak ada, arahkan user untuk menghubungi nusa.net.id.
         3. Ingat juga saat ini bulan {month} dan tahun {year}. Jika ada pertanyaan terkait waktu, sesuaikan dengan bulan & tahun saat ini. 
            Jangan memberi informasi yang sudah berlalu.
+        4. Pastikan format jawaban yang kamu berikan bagus untuk tampilan chat di Whatsapp
 
         Adapun pertanyaan yang diajukan oleh user adalah:
         {question}
@@ -568,6 +571,7 @@ prompt_answr = PromptTemplate.from_template(
         3. Jawab profesional, jelas, informatif. Sertakan kontak jika relevan.
         4. Ingat sekarang bulan {month} {year}.
         5. Jika ada history, gunakan sesuai konteks.
+        6. Pastikan format jawaban yang kamu berikan bagus untuk tampilan chat di Whatsapp
 
         Pertanyaan user:
         {question}
@@ -623,6 +627,7 @@ prompt_check = PromptTemplate.from_template(
 
     === LANGKAH PENILAIAN ===
     1. **Apakah inputan merupakan pertanyaan?**
+       - Analisa terlebih dahulu, jika memang bukan pertanyaan namun masih mengarah ke pembahasan Nusanet atau Nusawork (HRIS milik Nusanet). Silahkan dilanjutkan.
        - Jika bukan pertanyaan (hanya sapaan, kata pendek, atau teks umum) → langsung buat respon ramah & natural (lihat aturan di bawah).
        - Jika pertanyaan → lanjut ke langkah 2.
 
