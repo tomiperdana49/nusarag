@@ -3,6 +3,7 @@ from flask_cors import CORS
 from service.service import ArticleService, QuestionService, OrganizationService, AskService, LogService, webHook
 from validation.validation import validate_article, validate_question, validate_organizations, validate_question_article_batch, validate_article_batch, validate_question_batch
 from validation.authentication import tokenService,require_token
+from service.chat import notification
 from werkzeug.exceptions import BadRequest
 import os, jwt
 import requests
