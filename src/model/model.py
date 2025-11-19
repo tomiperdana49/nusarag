@@ -11,6 +11,8 @@ from connection.connection import get_connection
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain.prompts import PromptTemplate
 
+from service.chat import notification
+
 # Creating datetime
 now = datetime.now()
 curr_month = now.strftime("%B")
@@ -288,6 +290,7 @@ def ask(question: str, session_id: str, organization_id: int):
 
                 save_history(save_history_dt)
                 save_log(save_log_dt)
+                notification("Not Found", session_id, question)
                 return response_text, summary_text, "Not found article", history, reformat_notfoundh
 
             join_article = set()
@@ -340,6 +343,7 @@ def ask(question: str, session_id: str, organization_id: int):
             }
             save_history(save_history_dt)
             save_log(save_log_dt)
+            notification("Article Found", session_id, question)
             return response_text, summary_text, "Article Found"
         except Exception as e:
             import traceback
@@ -390,6 +394,7 @@ def ask(question: str, session_id: str, organization_id: int):
 
             save_history(save_history_dt)
             save_log(save_log_dt)
+            notification("Not Found", session_id, question)
             return res_nf.content, "Article Not Found"
      
         join_article = set()
@@ -434,6 +439,7 @@ def ask(question: str, session_id: str, organization_id: int):
 
         save_history(save_history_dt)
         save_log(save_log_dt)
+        notification("Article Found", session_id, question)
 
         return res_ans.content, "Article Found"
 
@@ -631,7 +637,7 @@ prompt_check = PromptTemplate.from_template(
        - Jika bukan pertanyaan (hanya sapaan, kata pendek, atau teks umum) → langsung buat respon ramah & natural (lihat aturan di bawah).
        - Jika pertanyaan → lanjut ke langkah 2.
 
-    2. **Jika pertanyaan, tentukan apakah BERKAITAN DENGAN NUSANET.**
+    2. **Jika pertanyaan, tentukan apakah BERKAITAN DENGAN NUSANET ataupun LAYANAN INTERNET, KELUHAN CUSTOMER, DAN LAINNYA YANG BERKAITAN MENGENAI CUSTOMER, INTERNET, DAN KARYAWAN.**
        Pertanyaan dianggap berkaitan dengan Nusanet jika termasuk dalam kategori berikut:
        - Tentang layanan internet, gangguan koneksi, modem, tagihan, atau CS.
        - Tentang produk atau merek internal seperti: **Nusafiber, Nusawork, Gamas, NusaContact, Wardix, Nusanet Cloud**, dll.
