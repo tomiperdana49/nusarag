@@ -211,9 +211,9 @@ def save_history(data):
 
     query = """
         INSERT INTO history (
-            time, session_id, organization_id, question, response
+            time, session_id, organization_id, question, response, context
         )
-        VALUES (%s, %s, %s, %s, %s)
+        VALUES (%s, %s, %s, %s, %s, %s)
     """
 
     try:
@@ -222,7 +222,8 @@ def save_history(data):
             data['session_id'],
             data['organization_id'],
             data['question'],
-            data['response']
+            data['response'],
+            data['context'],
         ))
         conn.commit()
         return {"success": True}
@@ -285,7 +286,8 @@ def ask(question: str, session_id: str, organization_id: int):
                     "session_id": session_id,
                     "organization_id": organization_id,
                     "question": question,
-                    "response": response_text
+                    "response": response_text,
+                    "context": "Not Found"
                 }
 
                 save_history(save_history_dt)
@@ -339,7 +341,8 @@ def ask(question: str, session_id: str, organization_id: int):
                 "session_id": session_id,
                 "organization_id": organization_id,
                 "question": question,
-                "response": response_text
+                "response": response_text,
+                "context": context,
             }
             save_history(save_history_dt)
             save_log(save_log_dt)
@@ -389,7 +392,8 @@ def ask(question: str, session_id: str, organization_id: int):
                 "session_id": session_id,
                 "organization_id": organization_id,
                 "question": question,
-                "response": res_nf.content
+                "response": res_nf.content,
+                "context": "Not Found"
             }
 
             save_history(save_history_dt)
@@ -434,7 +438,8 @@ def ask(question: str, session_id: str, organization_id: int):
                 "session_id": session_id,
                 "organization_id": organization_id,
                 "question": question,
-                "response": res_ans.content
+                "response": res_ans.content,
+                "context": context
             }
 
         save_history(save_history_dt)
@@ -449,7 +454,7 @@ def check_question(question: str):
         question=question
     )
     res_ans = llm.invoke(reformat)
-
+    print(res_ans.content)
     return res_ans.content
 
 
@@ -647,6 +652,8 @@ prompt_check = PromptTemplate.from_template(
          → Ini **tetap dianggap relevan**, karena kamu adalah bagian dari Nusanet.
        - Tentang seputar karyawan, pelayanan nusanet terhadap karyawan, pengembangan karir dan lainnya yang berkaitan karyawan dan lowongan kerja ataupun yang berkaitan dengan HRD di Nusanet
          → Apakah di perusahaan ini adal lowongan kerja?, Apakah Nusanet ada training?, Tes seleksinya? dan lainnya.
+       - Tentang seputar daerah
+         → misalnya: medan, bali, binjai. keluarkan hanya `True` (tanpa tanda kutip, tanpa tambahan lain).
 
        Jika pertanyaan termasuk salah satu dari hal di atas → keluarkan **hanya teks berikut (tanpa tambahan apapun): True
 
@@ -695,6 +702,7 @@ prompt_check = PromptTemplate.from_template(
     - Jika pertanyaan relevan dengan Nusanet → keluarkan hanya `True` (tanpa tanda kutip, tanpa tambahan lain).
     - Jika pertanyaan tidak relevan → jawab sopan dan singkat.
     - Jika bukan pertanyaan → berikan sapaan ramah yang variatif dan natural.
+    - Jika user menyebutkan nama lokasi → keluarkan hanya `True` (tanpa tanda kutip, tanpa tambahan lain).
     """
 )
 
