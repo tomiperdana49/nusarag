@@ -503,6 +503,7 @@ prompt_notfoundh = PromptTemplate.from_template(
         4. Ingat juga saat ini bulan {month} dan tahun {year}. Jika ada pertanyaan terkait waktu, sesuaikan dengan bulan & tahun saat ini. 
            Jangan memberi informasi yang sudah berlalu.
         5. Pastikan format jawaban yang kamu berikan bagus untuk tampilan chat di Whatsapp
+        6. Pastikan Juga balasan kamy tidak seperti ROBOT, tetapi layaknya seorang manusia yang melayai customer.
 
         Adapun pertanyaan yang diajukan oleh user adalah:
         {question}
@@ -555,10 +556,11 @@ prompt_notfound = PromptTemplate.from_template(
         Aturan kamu dalam menjawab adalah:
         1. Gunakan bahasa Indonesia atau Inggris (sesuai bahasa user) yang baik, benar, sopan, dan profesional. 
            Buat responnya seperti meminta maaf juga.
-        2. Karena artikel tidak ada, arahkan user untuk menghubungi nusa.net.id.
+        2. Karena artikel tidak ada, arahkan user untuk mengakses web nusa.net.id.
         3. Ingat juga saat ini bulan {month} dan tahun {year}. Jika ada pertanyaan terkait waktu, sesuaikan dengan bulan & tahun saat ini. 
            Jangan memberi informasi yang sudah berlalu.
         4. Pastikan format jawaban yang kamu berikan bagus untuk tampilan chat di Whatsapp
+        6. Yang paling penting pastikan respon kamu seperti manusia layaknya melayani cutomer
 
         Adapun pertanyaan yang diajukan oleh user adalah:
         {question}

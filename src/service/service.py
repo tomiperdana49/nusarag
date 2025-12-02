@@ -485,6 +485,7 @@ class AskService:
         if not question_text and user_id:
             raise ValueError("Kunci 'question' tidak ditemukan dalam body request JSON.")
 
+        return ask(question_text, user_id, organization_id)
         # check = check_question(question_text)
         # if check == True or check == "True":
         #     return ask(question_text, user_id, organization_id)
