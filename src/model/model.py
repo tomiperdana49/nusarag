@@ -448,14 +448,14 @@ def ask(question: str, session_id: str, organization_id: int):
 
         return res_ans.content, "Article Found"
 
-def check_question(question: str):
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3)
-    reformat = prompt_check.format(
-        question=question
-    )
-    res_ans = llm.invoke(reformat)
-    print(res_ans.content)
-    return res_ans.content
+# def check_question(question: str):
+#     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3)
+#     reformat = prompt_check.format(
+#         question=question
+#     )
+#     res_ans = llm.invoke(reformat)
+#     print(res_ans.content)
+#     return res_ans.content
 
 
 prompt_sum = PromptTemplate.from_template(
