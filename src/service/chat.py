@@ -10,7 +10,7 @@ def notification(respon, noHandphone, question):
         text = (
             f"*---- RAG Notifikasi ----*\n\n"
             f"*⏰ Tanggal:* {today}\n\n"
-            f"*📞 User:* https://wa.me/{noHandphone}\n\n"
+            f"*📞 Log:* https://dev.nwa.nusa.net.id/?phone={noHandphone}&phone_number_id=194329327102301\n\n"
             f"*❓ Pertanyaan User:* {question}\n\n"
 
             f"Pertanyaan ini tidak dapat di respon oleh AI."
@@ -19,7 +19,7 @@ def notification(respon, noHandphone, question):
         text = (
             f"*---- RAG Notifikasi ----*\n\n"
             f"*⏰ Tanggal:* {today}\n\n"
-            f"*📞 User:* https://wa.me/{noHandphone}\n\n"
+            f"*📞 Log:* https://dev.nwa.nusa.net.id/?phone={noHandphone}&phone_number_id=194329327102301\n\n"
             f"*❓ Pertanyaan User:* {question}\n\n"
         )
     
