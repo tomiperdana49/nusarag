@@ -410,7 +410,7 @@ def ask(question: str, session_id: str, organization_id: int):
                     part_context.append(f"Judul: {article['title']}\n{article['content']}")
 
         context = "\n".join(part_context)
-
+        print(context)
         reformat_ans = prompt_answr.format(
             question = question,
             articles = context,
@@ -524,6 +524,8 @@ prompt_answrh = PromptTemplate.from_template(
         Jika user pakai bahasa Inggris → jawab dalam bahasa Inggris.
         Jika user pakai bahasa Indonesia → jawab dalam bahasa Indonesia.
         Ingat jika konteks terkait ataupun history menggunakan bahasa indonesia tapi pertanyaan menggunakan bahasa inggris translate semuanya sehingga anda tetap menjawab kedalam bahasa inggris
+        - Di context yang dikirim cek apakah ada mengandung url artikel dengan awalan https://help.nusawork.com/ sebagai sumber artikel. Jika ada silahkan sisipkan di jawaban dengan format di bawah
+        - Jika di context yang diberikan terdapar url sebagai sumber artikel yang biasanya diawali dengan https://help.nusawork.com/ sertakan dengan format: Sumber Artikel :
 
         Kamu adalah Naila (Nusa Artificial Intelligence Liaison Assistant). 
         Kamu adalah asisten cerdas yang membantu meringkas history pertanyaan customer sebelumnya.
@@ -536,6 +538,8 @@ prompt_answrh = PromptTemplate.from_template(
         4. Ingat tanggal, bulan, dan tahun saat ini: {month} {year}.
         5. Jika ada informasi terkait di history, sertakan.
         6. Pastikan format jawaban yang kamu berikan bagus untuk tampilan chat di Whatsapp
+        7. Jika ada sumber artikel berupa url, jangan lupa di sisipkan urlnya dengan format. Sumber Artikel : (url-nya) biasanya diawali dengan  https://help.nusawork.com/
+        8. Jika di bawah context kamu menemukan url dengan awalan  https://help.nusawork.com/ sebagai sumber artikel. Kamu HARUS SISIPKAN di jawaban paling akhir dengan format Sumber Artikel : (url-nya)
 
         Berikut adalah pertanyaan user:
         {question}
@@ -581,6 +585,8 @@ prompt_answr = PromptTemplate.from_template(
         - Jika user pakai bahasa Inggris → terjemahkan semua artikel {articles} ke bahasa Inggris sebelum menjawab.
         - Jika user pakai bahasa Indonesia → jawab dengan bahasa Indonesia.
         - Jika campuran, gunakan bahasa dominan user.
+        - Di context yang dikirim cek apakah ada mengandung url artikel dengan awalan https://help.nusawork.com/ sebagai sumber artikel. Jika ada silahkan sisipkan di jawaban dengan format di bawah
+        - Jika di context yang diberikan terdapar url sebagai sumber artikel yang biasanya diawali dengan https://help.nusawork.com/ sertakan dengan format: Sumber Artikel :
 
         Kamu adalah Naila (Nusa Artificial Intelligence Liaison Assistant).
         Kamu asisten cerdas yang membantu meringkas informasi untuk user.
@@ -592,6 +598,8 @@ prompt_answr = PromptTemplate.from_template(
         4. Ingat sekarang bulan {month} {year}.
         5. Jika ada history, gunakan sesuai konteks.
         6. Pastikan format jawaban yang kamu berikan bagus untuk tampilan chat di Whatsapp
+        7. Jika ada sumber artikel berupa url, jangan lupa di sisipkan urlnya dengan format. Sumber Artikel : (url-nya) biasanya diawali dengan  https://help.nusawork.com/
+        8. Jika di bawah context kamu menemukan url dengan awalan  https://help.nusawork.com/ sebagai sumber artikel. Kamu HARUS SISIPKAN di jawaban paling akhir dengan format Sumber Artikel : (url-nya)
 
         Pertanyaan user:
         {question}
