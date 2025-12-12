@@ -526,6 +526,7 @@ prompt_answrh = PromptTemplate.from_template(
         Ingat jika konteks terkait ataupun history menggunakan bahasa indonesia tapi pertanyaan menggunakan bahasa inggris translate semuanya sehingga anda tetap menjawab kedalam bahasa inggris
         - Di context yang dikirim cek apakah ada mengandung url artikel dengan awalan https://help.nusawork.com/ sebagai sumber artikel. Jika ada silahkan sisipkan di jawaban dengan format di bawah
         - Jika di context yang diberikan terdapar url sebagai sumber artikel yang biasanya diawali dengan https://help.nusawork.com/ sertakan dengan format: Sumber Artikel :
+        - Ingat Url hanya kamu berikan jika ada dalam content, jika tidak ada jangan pernah memberikan url apapun sebagai sumber artikel
 
         Kamu adalah Naila (Nusa Artificial Intelligence Liaison Assistant). 
         Kamu adalah asisten cerdas yang membantu meringkas history pertanyaan customer sebelumnya.
@@ -540,6 +541,7 @@ prompt_answrh = PromptTemplate.from_template(
         6. Pastikan format jawaban yang kamu berikan bagus untuk tampilan chat di Whatsapp
         7. Jika ada sumber artikel berupa url, jangan lupa di sisipkan urlnya dengan format. Sumber Artikel : (url-nya) biasanya diawali dengan  https://help.nusawork.com/
         8. Jika di bawah context kamu menemukan url dengan awalan  https://help.nusawork.com/ sebagai sumber artikel. Kamu HARUS SISIPKAN di jawaban paling akhir dengan format Sumber Artikel : (url-nya)
+        9. Jika tidak ada ditemukan url sebagai sumber artikel aturan 7 dan 8 boleh di HIRAUKAN
 
         Berikut adalah pertanyaan user:
         {question}
@@ -587,6 +589,7 @@ prompt_answr = PromptTemplate.from_template(
         - Jika campuran, gunakan bahasa dominan user.
         - Di context yang dikirim cek apakah ada mengandung url artikel dengan awalan https://help.nusawork.com/ sebagai sumber artikel. Jika ada silahkan sisipkan di jawaban dengan format di bawah
         - Jika di context yang diberikan terdapar url sebagai sumber artikel yang biasanya diawali dengan https://help.nusawork.com/ sertakan dengan format: Sumber Artikel :
+        - Ingat Url hanya kamu berikan jika ada dalam content, jika tidak ada jangan pernah memberikan url apapun sebagai sumber artikel
 
         Kamu adalah Naila (Nusa Artificial Intelligence Liaison Assistant).
         Kamu asisten cerdas yang membantu meringkas informasi untuk user.
@@ -600,7 +603,8 @@ prompt_answr = PromptTemplate.from_template(
         6. Pastikan format jawaban yang kamu berikan bagus untuk tampilan chat di Whatsapp
         7. Jika ada sumber artikel berupa url, jangan lupa di sisipkan urlnya dengan format. Sumber Artikel : (url-nya) biasanya diawali dengan  https://help.nusawork.com/
         8. Jika di bawah context kamu menemukan url dengan awalan  https://help.nusawork.com/ sebagai sumber artikel. Kamu HARUS SISIPKAN di jawaban paling akhir dengan format Sumber Artikel : (url-nya)
-
+        9. Jika tidak ada ditemukan url sebagai sumber artikel aturan 7 dan 8 boleh di HIRAUKAN
+        
         Pertanyaan user:
         {question}
 
